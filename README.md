@@ -1,7 +1,7 @@
 # Authorization Interceptor: A simple and lightweight .NET package designed to streamline HttpClient authenticated requests
 [![GithubActions](https://img.shields.io/appveyor/build/Adolfok3/AuthorizationInterceptor)](https://github.com/Adolfok3/AuthorizationInterceptor/actions)
-[![Tests](https://img.shields.io/appveyor/tests/Adolfok3/AuthorizationInterceptor)](https://github.com/Adolfok3/AuthorizationInterceptor/tree/main/AuthorizationInterceptor.Test)
-[![Coverage Status](https://coveralls.io/repos/github/Adolfok3/AuthorizationInterceptor/badge.svg?branch=main)](https://coveralls.io/github/Adolfok3/AuthorizationInterceptor?branch=main)
+[![Tests](https://img.shields.io/appveyor/tests/Adolfok3/AuthorizationInterceptor)](https://github.com/Adolfok3/AuthorizationInterceptor/tree/main/tests/AuthorizationInterceptor.Test)
+[![Coverage Status](https://coveralls.io/repos/github/Adolfok3/authorizationinterceptor/badge.svg?branch=main)](https://coveralls.io/github/Adolfok3/authorizationinterceptor?branch=main)
 [![NuGet](https://buildstats.info/nuget/AuthorizationInterceptor)](https://www.nuget.org/packages/AuthorizationInterceptor)
 
 ## What is Authorization Interceptor?
@@ -48,7 +48,7 @@ public class TargetApiAuthClass : IAuthenticationHandler
     public async Task<AuthorizationEntry> AuthenticateAsync()
     {
         //The login call to the target API should be placed here, and it should return the authorization headers.
-        var authorization = LoginToMyTargetApi(entries.RefreshToken);
+        var authorization = LoginToMyTargetApi();
         return new OAuthEntry(authorization.AccessToken, authorization.TokenType, authorization.ExpiresIn, authorization.RefreshToken);
     }
 
@@ -99,7 +99,7 @@ By default, the only configured interceptor is MemoryCache, but when we have a s
 In practice, simply choose from the available libraries for the package that implement [DistributedCache](https://learn.microsoft.com/en-us/aspnet/core/performance/caching/distributed) and install it in your project. So far, we have the following integrated packages:
 
 
-- [StackExchange.Redis](https://github.com/StackExchange/StackExchange.Redis)
+- [StackExchange.Redis](https://github.com/Adolfok3/AuthorizationInterceptor.Extensions.Interceptors.StackExchange.Redis)
 
 After selecting and installing the distributed cache package, in the constructor of the Authorization Interceptor, call the respective extension method. In the example below, we will use the Redis integration to implement the distributed cache.
 ```csharp
