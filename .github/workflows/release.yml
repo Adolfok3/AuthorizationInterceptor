@@ -1,0 +1,32 @@
+name: Release
+
+on:
+  push:
+    tags:
+    - '*.*.*'
+jobs:
+
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set current Tag
+      run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+    - name: Check current Tag
+      run: |
+        echo $RELEASE_VERSION
+        echo ${{ env.RELEASE_VERSION }}
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 8.0.x
+    - name: Generate Package
+      run: |
+        dotnet clean -c Release
+        dotnet build -c Release
+        dotnet test -c Release --no-build --verbosity normal
+        ls
+        dotnet pack src/AuthorizationInterceptor.csproj -c Release --no-build /p:Version=${{ env.RELEASE_VERSION }}
+    - name: Push to NuGet
+      run: |
+        dotnet nuget push src/bin/Release/AuthorizationInterceptor.${{ env.RELEASE_VERSION }}.nupkg -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json

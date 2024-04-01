@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34622.214
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AuthorizationInterceptor", "src\AuthorizationInterceptor.csproj", "{1B7ED06E-1A27-4019-B1B6-FF2FA4BA35C3}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AuthorizationInterceptor.Tests", "tests\AuthorizationInterceptor.Tests\AuthorizationInterceptor.Tests.csproj", "{815498BE-8A6E-4DB2-AF29-74076D73086D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1B7ED06E-1A27-4019-B1B6-FF2FA4BA35C3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1B7ED06E-1A27-4019-B1B6-FF2FA4BA35C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1B7ED06E-1A27-4019-B1B6-FF2FA4BA35C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1B7ED06E-1A27-4019-B1B6-FF2FA4BA35C3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{815498BE-8A6E-4DB2-AF29-74076D73086D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{815498BE-8A6E-4DB2-AF29-74076D73086D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{815498BE-8A6E-4DB2-AF29-74076D73086D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{815498BE-8A6E-4DB2-AF29-74076D73086D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {16C3D677-0CE4-4111-9BD9-EC1C11956A8C}
+	EndGlobalSection
+EndGlobal
