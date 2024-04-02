@@ -1,8 +1,9 @@
 # Authorization Interceptor: A simple and lightweight .NET package designed to streamline HttpClient authenticated requests
 [![GithubActions](https://img.shields.io/appveyor/build/Adolfok3/AuthorizationInterceptor)](https://github.com/Adolfok3/AuthorizationInterceptor/actions)
-[![Tests](https://img.shields.io/appveyor/tests/Adolfok3/AuthorizationInterceptor)](https://github.com/Adolfok3/AuthorizationInterceptor/tree/main/tests/AuthorizationInterceptor.Test)
+[![Tests](https://img.shields.io/appveyor/tests/Adolfok3/AuthorizationInterceptor)](https://github.com/Adolfok3/AuthorizationInterceptor/tree/main/tests/AuthorizationInterceptor.Tests)
+[![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 [![Coverage Status](https://coveralls.io/repos/github/Adolfok3/authorizationinterceptor/badge.svg?branch=main)](https://coveralls.io/github/Adolfok3/authorizationinterceptor?branch=main)
-[![NuGet](https://buildstats.info/nuget/AuthorizationInterceptor)](https://www.nuget.org/packages/AuthorizationInterceptor)
+[![NuGet Version](https://img.shields.io/nuget/vpre/AuthorizationInterceptor)](https://www.nuget.org/packages/AuthorizationInterceptor)
 
 ## What is Authorization Interceptor?
 Authorization Interceptor is a custom handler added to your HttpClient builder. With it, there's no need to worry about the expiration time and management of the authorization headers of your requests. Offering the possibility to use OAuth2 with RefreshToken or custom headers, whenever a request is sent and its response is a status code 401 (Unauthorized), the Interceptor will update the authorization headers and resend the same request with the updated authorization headers.
