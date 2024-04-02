@@ -1,6 +1,6 @@
 # Authorization Interceptor: A simple and lightweight .NET package designed to streamline HttpClient authenticated requests
 [![GithubActions](https://img.shields.io/appveyor/build/Adolfok3/AuthorizationInterceptor)](https://github.com/Adolfok3/AuthorizationInterceptor/actions)
-[![Tests](https://img.shields.io/appveyor/tests/Adolfok3/AuthorizationInterceptor)](https://github.com/Adolfok3/AuthorizationInterceptor/tree/main/tests/AuthorizationInterceptor.Test)
+[![Tests](https://img.shields.io/appveyor/tests/Adolfok3/AuthorizationInterceptor)](https://github.com/Adolfok3/AuthorizationInterceptor/tree/main/tests/AuthorizationInterceptor.Tests)
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 [![Coverage Status](https://coveralls.io/repos/github/Adolfok3/authorizationinterceptor/badge.svg?branch=main)](https://coveralls.io/github/Adolfok3/authorizationinterceptor?branch=main)
 [![NuGet Version](https://img.shields.io/nuget/vpre/AuthorizationInterceptor)](https://www.nuget.org/packages/AuthorizationInterceptor)
