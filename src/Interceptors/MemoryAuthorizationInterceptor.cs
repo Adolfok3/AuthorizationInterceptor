@@ -35,15 +35,12 @@ namespace AuthorizationInterceptor.Interceptors
             var headers = await _memoryCache.GetOrCreateAsync(_cacheKey, async factory =>
             {
                 var headers = entry ?? await base.OnGetHeadersAsync();
-                factory.AbsoluteExpirationRelativeToNow = GetRealExpiration(headers.ExpiresIn, headers.AuthenticatedAt);
+                factory.AbsoluteExpirationRelativeToNow = entry?.GetRealExpiration();
                 factory.Priority = CacheItemPriority.NeverRemove;
                 return headers;
             });
 
             return headers!;
         }
-
-        private TimeSpan? GetRealExpiration(TimeSpan? expiresIn, DateTimeOffset authenticatedAt)
-            => expiresIn - (DateTimeOffset.UtcNow - authenticatedAt);
     }
 }
