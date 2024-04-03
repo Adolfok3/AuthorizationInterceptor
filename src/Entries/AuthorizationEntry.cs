@@ -29,6 +29,13 @@ namespace AuthorizationInterceptor.Entries
         /// </value>
         public DateTimeOffset AuthenticatedAt { get; }
 
+        /// <summary>
+        /// Calculate the real expiration time
+        /// </summary>
+        /// <returns>Returns the real expiration time relative to now</returns>
+        public TimeSpan? GetRealExpiration()
+            => ExpiresIn - (DateTimeOffset.UtcNow - AuthenticatedAt);
+
         public AuthorizationEntry(TimeSpan? expiresIn = null)
         {
             ExpiresIn = expiresIn;
