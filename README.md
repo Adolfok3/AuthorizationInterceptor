@@ -1,4 +1,4 @@
-<img src="./resources/icon.png" alt="image" width="auto" height="150">
+![AuthorizationInterceptor Icon](./resources/icon.png)
 
 # Authorization Interceptor: A simple and lightweight .NET package designed to streamline HttpClient authenticated requests
 [![GithubActions](https://github.com/Adolfok3/authorizationinterceptor/actions/workflows/main.yml/badge.svg)](https://github.com/Adolfok3/AuthorizationInterceptor/actions)
