@@ -1,10 +1,6 @@
-﻿using AuthorizationInterceptor.Entries;
-using AuthorizationInterceptor.Extensions;
-using AuthorizationInterceptor.Handlers;
-using AuthorizationInterceptor.Interceptors;
+﻿using AuthorizationInterceptor.Extensions;
 using AuthorizationInterceptor.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace AuthorizationInterceptor.Tests.Extensions;
