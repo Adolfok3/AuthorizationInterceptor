@@ -12,6 +12,7 @@ public class AuthorizationEntryTests
 
         //Assert
         Assert.Null(entry.ExpiresIn);
+        Assert.Null(entry.OAuthEntry);
         Assert.Empty(entry);
         Assert.NotEqual(DateTimeOffset.MinValue, entry.AuthenticatedAt);
     }
@@ -28,6 +29,7 @@ public class AuthorizationEntryTests
         //Assert
         Assert.NotNull(entry.ExpiresIn);
         Assert.NotEmpty(entry);
+        Assert.NotEqual(entry.ExpiresIn, entry.GetRealExpiration());
         Assert.Contains(entry, a => a.Key == "Test" && a.Value == "Test");
         Assert.NotEqual(DateTimeOffset.MinValue, entry.AuthenticatedAt);
     }

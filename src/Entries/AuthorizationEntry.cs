@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 
 namespace AuthorizationInterceptor.Entries
 {
@@ -11,7 +12,7 @@ namespace AuthorizationInterceptor.Entries
         /// <summary>
         /// Obtém as propriedades do OAuth depois de definidas no método de autenticação.
         /// </summary>
-        public OAuthEntry? OAuthEntry { get; }
+        public OAuthEntry? OAuthEntry { get; private set; }
 
         /// <summary>
         /// Gets the optional expiration timespan for the authorization data.
@@ -19,7 +20,7 @@ namespace AuthorizationInterceptor.Entries
         /// <value>
         /// The duration for which the authorization data is considered valid, or <c>null</c> if it does not expire.
         /// </value>
-        public TimeSpan? ExpiresIn { get; }
+        public TimeSpan? ExpiresIn { get; private set; }
 
         /// <summary>
         /// Gets the time at which the authorization data was generated/authenticated.
@@ -27,7 +28,7 @@ namespace AuthorizationInterceptor.Entries
         /// <value>
         /// The <see cref="DateTimeOffset"/> representing the point in time the authorization data was generated/authenticated.
         /// </value>
-        public DateTimeOffset AuthenticatedAt { get; }
+        public DateTimeOffset AuthenticatedAt { get; private set; }
 
         /// <summary>
         /// Calculate the real expiration time
@@ -48,6 +49,10 @@ namespace AuthorizationInterceptor.Entries
             OAuthEntry = oAuthEntry;
             ExpiresIn = oAuthEntry.ExpiresIn.HasValue ? TimeSpan.FromSeconds(oAuthEntry.ExpiresIn.Value) : null;
             Add("Authorization", $"{oAuthEntry.TokenType} {oAuthEntry.AccessToken}");
+        }
+
+        private AuthorizationEntry()
+        {
         }
 
         public static implicit operator AuthorizationEntry(OAuthEntry entry)

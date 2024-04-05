@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.9.34701.34
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TargetApi", "TargetApi\TargetApi.csproj", "{6095EBB0-1A0C-448C-84E4-CBE972A05479}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TargetApi", "TargetApi\TargetApi.csproj", "{6095EBB0-1A0C-448C-84E4-CBE972A05479}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SourceApi", "SourceApi\SourceApi.csproj", "{835CBED5-B68E-4DF4-9B29-9BAD55824F76}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SourceApi", "SourceApi\SourceApi.csproj", "{835CBED5-B68E-4DF4-9B29-9BAD55824F76}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

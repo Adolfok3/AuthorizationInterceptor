@@ -13,16 +13,10 @@ namespace AuthorizationInterceptor.Json
             if (Activator.CreateInstance(typeof(AuthorizationEntry), true) is not AuthorizationEntry authorizationEntry)
                 throw new JsonException("Unable to create an AuthorizationEntry instance.");
 
-            if (reader.TokenType != JsonTokenType.StartObject)
-                throw new JsonException("Expected StartObject token.");
-
             while (reader.Read())
             {
                 if (reader.TokenType == JsonTokenType.EndObject)
                     return authorizationEntry;
-
-                if (reader.TokenType != JsonTokenType.PropertyName)
-                    throw new JsonException("Expected PropertyName token.");
 
                 var propertyName = reader.GetString();
                 reader.Read();
@@ -33,7 +27,7 @@ namespace AuthorizationInterceptor.Json
                 switch (propertyName)
                 {
                     case "Headers":
-                        SetHeaders(reader, authorizationEntry);
+                        SetHeaders(ref reader, authorizationEntry);
                         continue;
                     case "ExpiresIn":
                         var expiresIn = reader.GetString();
@@ -50,7 +44,7 @@ namespace AuthorizationInterceptor.Json
                         SetProperty(authorizationEntry, "AuthenticatedAt", DateTimeOffset.Parse(authenticatedAt));
                         continue;
                     case "OAuthEntry":
-                        SetOAuthEntry(reader, options, authorizationEntry);
+                        SetOAuthEntry(ref reader, options, authorizationEntry);
                         continue;
                 }
             }
@@ -89,22 +83,26 @@ namespace AuthorizationInterceptor.Json
             writer.WriteEndObject();
         }
 
-        private void SetOAuthEntry(Utf8JsonReader reader, JsonSerializerOptions options, AuthorizationEntry authorizationEntry)
+        private void SetOAuthEntry(ref Utf8JsonReader reader, JsonSerializerOptions options, AuthorizationEntry authorizationEntry)
         {
             var oAuthEntryJson = JsonSerializer.Deserialize<JsonElement>(ref reader, options);
-            var accessToken = oAuthEntryJson.GetProperty("AccessToken").GetString();
-            var tokenType = oAuthEntryJson.GetProperty("TokenType").GetString();
-            if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(tokenType))
+            
+            var accessToken = RequireStringProperty(oAuthEntryJson, "AccessToken");
+            if (string.IsNullOrEmpty(accessToken))
                 return;
 
-            var expiresInValue = oAuthEntryJson.GetProperty("ExpiresIn").GetString();
+            var tokenType = RequireStringProperty(oAuthEntryJson, "TokenType");
+            if (string.IsNullOrEmpty(tokenType))
+                return;
+
+            var expiresInValue = RequireStringProperty(oAuthEntryJson, "ExpiresIn");
             double? expiresIn = string.IsNullOrEmpty(expiresInValue) ? null : double.Parse(expiresInValue);
-            var refreshToken = oAuthEntryJson.GetProperty("RefreshToken").GetString();
-            var scope = oAuthEntryJson.GetProperty("Scope").GetString();
+            var refreshToken = RequireStringProperty(oAuthEntryJson, "RefreshToken");
+            var scope = RequireStringProperty(oAuthEntryJson, "Scope");
             SetProperty(authorizationEntry, "OAuthEntry", new OAuthEntry(accessToken, tokenType, expiresIn, refreshToken, scope));
         }
 
-        private void SetHeaders(Utf8JsonReader reader, AuthorizationEntry authorizationEntry)
+        private void SetHeaders(ref Utf8JsonReader reader, AuthorizationEntry authorizationEntry)
         {
             while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
             {
@@ -125,6 +123,14 @@ namespace AuthorizationInterceptor.Json
         {
             var propertyInfo = obj.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             propertyInfo?.SetValue(obj, value, null);
+        }
+
+        public string? RequireStringProperty(JsonElement oAuthEntryJson, string propertyName)
+        {
+            if (!oAuthEntryJson.TryGetProperty(propertyName, out var property))
+                return null;
+
+            return property.GetString();
         }
     }
 }
