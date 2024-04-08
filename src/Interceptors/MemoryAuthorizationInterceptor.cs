@@ -2,7 +2,6 @@
 using AuthorizationInterceptor.Handlers;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Threading.Tasks;
 
 namespace AuthorizationInterceptor.Interceptors
