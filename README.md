@@ -100,8 +100,7 @@ By default, the only configured interceptor is MemoryCache, but when we have a s
 
 In practice, simply choose from the available libraries for the package that implement [DistributedCache](https://learn.microsoft.com/en-us/aspnet/core/performance/caching/distributed) and install it in your project. So far, we have the following integrated packages:
 
-
-- [StackExchange.Redis](https://github.com/Adolfok3/AuthorizationInterceptor.Extensions.Interceptors.StackExchange.Redis)
+- [StackExchange.Redis](https://github.com/Adolfok3/AuthorizationInterceptor.Extensions.Redis)
 
 After selecting and installing the distributed cache package, in the constructor of the Authorization Interceptor, call the respective extension method. In the example below, we will use the Redis integration to implement the distributed cache.
 ```csharp
