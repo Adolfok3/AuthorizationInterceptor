@@ -1,6 +1,6 @@
-﻿using AuthorizationInterceptor.Entries;
-using AuthorizationInterceptor.Interceptors;
+﻿using AuthorizationInterceptor.Extensions.Abstractions.Headers;
 using AuthorizationInterceptor.Options;
+using AuthorizationInterceptor.Strategies;
 using Microsoft.Extensions.Logging;
 using System.Linq;
 using System.Net.Http;
@@ -11,15 +11,15 @@ namespace AuthorizationInterceptor.Handlers
 {
     internal class AuthorizationInterceptorHandler : DelegatingHandler
     {
-        private readonly IAuthorizationInterceptor _interceptor;
         private readonly AuthorizationInterceptorOptions _options;
+        private readonly IAuthorizationInterceptorStrategy _strategy;
         private readonly ILogger _logger;
 
-        public AuthorizationInterceptorHandler(IAuthorizationInterceptor interceptor, AuthorizationInterceptorOptions options, ILogger<AuthorizationInterceptorHandler> logger)
+        public AuthorizationInterceptorHandler(AuthorizationInterceptorOptions options, IAuthorizationInterceptorStrategy strategy, ILoggerFactory loggerFactory)
         {
-            _interceptor = interceptor;
             _options = options;
-            _logger = logger;
+            _strategy = strategy;
+            _logger = loggerFactory.CreateLogger(nameof(AuthorizationInterceptorHandler));
         }
 
         protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -34,7 +34,13 @@ namespace AuthorizationInterceptor.Handlers
 
         private async Task<HttpResponseMessage> SendWithInterceptorAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            var headers = await _interceptor.GetHeadersAsync();
+            var headers = await _strategy.GetHeadersAsync();
+            if (headers == null || !headers.Any())
+            {
+                Log("No headers added to request");
+                return await base.SendAsync(request, cancellationToken);
+            }
+
             request = AddHeaders(request, headers);
 
             var response = await base.SendAsync(request, cancellationToken);
@@ -42,20 +48,20 @@ namespace AuthorizationInterceptor.Handlers
                 return response;
 
             Log("Caught unauthenticated predicate from response");
-            headers = await _interceptor.UpdateHeadersAsync(headers);
+            headers = await _strategy.UpdateHeadersAsync(headers);
+            if (headers == null || !headers.Any())
+            {
+                Log("No headers added to request");
+                return response;
+            }
+
             request = AddHeaders(request, headers);
 
             return await base.SendAsync(request, cancellationToken);
         }
 
-        private HttpRequestMessage AddHeaders(HttpRequestMessage request, AuthorizationEntry headers)
+        private HttpRequestMessage AddHeaders(HttpRequestMessage request, AuthorizationHeaders headers)
         {
-            if (headers == null || !headers.Any())
-            {
-                Log("No headers added to request");
-                return request;
-            }
-
             foreach (var header in headers)
             {
                 Log("Adding header '{header}' to request", header.Key);

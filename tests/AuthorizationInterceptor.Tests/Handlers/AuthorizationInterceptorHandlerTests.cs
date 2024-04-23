@@ -1,7 +1,7 @@
-﻿using AuthorizationInterceptor.Entries;
+﻿using AuthorizationInterceptor.Extensions.Abstractions.Headers;
 using AuthorizationInterceptor.Handlers;
-using AuthorizationInterceptor.Interceptors;
 using AuthorizationInterceptor.Options;
+using AuthorizationInterceptor.Strategies;
 using AuthorizationInterceptor.Tests.Utils;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
@@ -10,16 +10,20 @@ namespace AuthorizationInterceptor.Tests.Handlers;
 
 public class AuthorizationInterceptorHandlerTests
 {
-    private readonly IAuthorizationInterceptor interceptor;
+    private readonly IAuthorizationInterceptorStrategy _strategy;
     private readonly HttpClient _client;
 
     public AuthorizationInterceptorHandlerTests()
     {
-        var logger = Substitute.For<ILogger<AuthorizationInterceptorHandler>>();
+        var factory = Substitute.For<ILoggerFactory>();
+        var logger = Substitute.For<ILogger>();
         logger.IsEnabled(LogLevel.Debug).Returns(true);
-        interceptor = Substitute.For<IAuthorizationInterceptor>();
-        var handler = new AuthorizationInterceptorHandler(interceptor, new AuthorizationInterceptorOptions(), logger);
-        handler.InnerHandler = new MockAuthorizationInterceptorHandler(interceptor, new AuthorizationInterceptorOptions(), logger);
+        factory.CreateLogger("AuthorizationInterceptorHandler").Returns(logger);
+
+        _strategy = Substitute.For<IAuthorizationInterceptorStrategy>();
+
+        var handler = new AuthorizationInterceptorHandler(new AuthorizationInterceptorOptions(), _strategy, factory);
+        handler.InnerHandler = new MockAuthorizationInterceptorHandler();
         _client = new HttpClient(handler);
     }
 
@@ -34,8 +38,8 @@ public class AuthorizationInterceptorHandlerTests
 
         //Assert
         Assert.True(response.IsSuccessStatusCode);
-        await interceptor.Received(0).UpdateHeadersAsync(Arg.Any<AuthorizationEntry>());
-        await interceptor.Received(1).GetHeadersAsync();
+        await _strategy.Received(0).UpdateHeadersAsync(Arg.Any<AuthorizationHeaders>());
+        await _strategy.Received(1).GetHeadersAsync();
     }
 
     [Fact]
@@ -49,15 +53,15 @@ public class AuthorizationInterceptorHandlerTests
 
         //Assert
         Assert.True(response.IsSuccessStatusCode);
-        await interceptor.Received(0).UpdateHeadersAsync(Arg.Any<AuthorizationEntry>());
-        await interceptor.Received(1).GetHeadersAsync();
+        await _strategy.Received(0).UpdateHeadersAsync(Arg.Any<AuthorizationHeaders>());
+        await _strategy.Received(1).GetHeadersAsync();
     }
 
     [Fact]
     public async Task SendAsync_WithHeaders_ShouldSendRequestCorrectly()
     {
         //Arrange
-        interceptor.GetHeadersAsync().Returns(new AuthorizationEntry(TimeSpan.FromMinutes(3))
+        _strategy.GetHeadersAsync().Returns(new AuthorizationHeaders(TimeSpan.FromMinutes(3))
         {
             { "Authorization", "Bearer token" }
         });
@@ -68,15 +72,15 @@ public class AuthorizationInterceptorHandlerTests
 
         //Assert
         Assert.True(response.IsSuccessStatusCode);
-        await interceptor.Received(0).UpdateHeadersAsync(Arg.Any<AuthorizationEntry>());
-        await interceptor.Received(1).GetHeadersAsync();
+        await _strategy.Received(0).UpdateHeadersAsync(Arg.Any<AuthorizationHeaders>());
+        await _strategy.Received(1).GetHeadersAsync();
     }
 
     [Fact]
     public async Task SendAsync_WithHeaders_ShouldReturnsAnauthorized()
     {
         //Arrange
-        interceptor.GetHeadersAsync().Returns(new AuthorizationEntry(TimeSpan.FromMinutes(3))
+        _strategy.GetHeadersAsync().Returns(new AuthorizationHeaders(TimeSpan.FromMinutes(3))
         {
             { "ShouldReturnUnauthorized", "ShouldReturnUnauthorized" }
         });
@@ -87,7 +91,7 @@ public class AuthorizationInterceptorHandlerTests
 
         //Assert
         Assert.False(response.IsSuccessStatusCode);
-        await interceptor.Received(1).UpdateHeadersAsync(Arg.Any<AuthorizationEntry>());
-        await interceptor.Received(1).GetHeadersAsync();
+        await _strategy.Received(1).UpdateHeadersAsync(Arg.Any<AuthorizationHeaders>());
+        await _strategy.Received(1).GetHeadersAsync();
     }
 }

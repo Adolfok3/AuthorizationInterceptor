@@ -9,7 +9,7 @@ public class HttpClientBuilderExtensionsTests
 {
 
     [Fact]
-    public void AddAuthorizationInterceptorHandler_ShouldRegisterHandlerAndDefaultOptions_WhenCalledWithGenericType()
+    public void AddAuthorizationInterceptorHandler_WithoutOptions_ShouldExecuteSuccessfully()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -17,16 +17,14 @@ public class HttpClientBuilderExtensionsTests
         builder.Services.Returns(services);
 
         // Act
-        var result = builder.AddAuthorizationInterceptorHandler<MockAuthorizationInterceptorAuthenticationHandler>();
+        var act = () => builder.AddAuthorizationInterceptorHandler<MockAuthorizationInterceptorAuthenticationHandler>();
 
         // Assert
-        Assert.NotNull(result);
-        Assert.NotNull(result.HttpClientBuilder);
-        Assert.NotNull(result);
+        Assert.Null(Record.Exception(act));
     }
 
     [Fact]
-    public void AddAuthorizationInterceptorHandler_ShouldApplyCustomOptions_WhenCalledWithOptions()
+    public void AddAuthorizationInterceptorHandler_WithOptions_ShouldExecuteSuccessfully()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -34,15 +32,13 @@ public class HttpClientBuilderExtensionsTests
         builder.Services.Returns(services);
 
         // Act
-        var result = builder.AddAuthorizationInterceptorHandler<MockAuthorizationInterceptorAuthenticationHandler>(opts =>
+        var act = () => builder.AddAuthorizationInterceptorHandler<MockAuthorizationInterceptorAuthenticationHandler>(opts =>
         {
             opts.UnauthenticatedPredicate = response => response.StatusCode == System.Net.HttpStatusCode.BadRequest;
-            opts.DisableMemoryCache = true;
+            opts.UseCustomInterceptor<MockAuthorizationInterceptor>();
         });
 
         // Assert
-        Assert.NotNull(result);
-        Assert.NotNull(result.HttpClientBuilder);
-        Assert.NotNull(result);
+        Assert.Null(Record.Exception(act));
     }
 }
