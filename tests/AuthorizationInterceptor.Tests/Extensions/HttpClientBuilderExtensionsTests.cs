@@ -41,4 +41,26 @@ public class HttpClientBuilderExtensionsTests
         // Assert
         Assert.Null(Record.Exception(act));
     }
+
+
+
+    [Fact]
+    public void AddAuthorizationInterceptorHandler_WithOptions_ShouldBuildServiceProviderSucessfully()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddHttpClient("Test")
+            .AddAuthorizationInterceptorHandler<MockAuthorizationInterceptorAuthenticationHandler>(options =>
+            {
+                options.UseCustomInterceptor<MockAuthorizationInterceptor>();
+            });
+
+        // Act
+        var provider = services.BuildServiceProvider();
+        var httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
+        var act = () => httpClientFactory.CreateClient("Test");
+
+        // Assert
+        Assert.Null(Record.Exception(act));
+    }
 }
