@@ -150,12 +150,12 @@ services.AddHttpClient("TargetApi")
 ```csharp
 public class MyCustomInterceptor : IAuthorizationInterceptor
 {
-    public async Task<AuthorizationEntry?> GetHeadersAsync()
+    public async Task<AuthorizationHeaders?> GetHeadersAsync()
     {
         //Do something and return the headers if exists in this context
     }
 
-    public async Task<AuthorizationEntry?> UpdateHeadersAsync(AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders)
+    public async Task<AuthorizationHeaders?> UpdateHeadersAsync(AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders)
     {
         //Do something with expired headers if necessary and update with newHeaders
     }
