@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TargetApi", "TargetApi\Targ
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SourceApi", "SourceApi\SourceApi.csproj", "{835CBED5-B68E-4DF4-9B29-9BAD55824F76}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AuthorizationInterceptor", "..\src\AuthorizationInterceptor.csproj", "{6A402E57-96D7-43E7-9B87-7514CBDF29B0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{835CBED5-B68E-4DF4-9B29-9BAD55824F76}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{835CBED5-B68E-4DF4-9B29-9BAD55824F76}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{835CBED5-B68E-4DF4-9B29-9BAD55824F76}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6A402E57-96D7-43E7-9B87-7514CBDF29B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6A402E57-96D7-43E7-9B87-7514CBDF29B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6A402E57-96D7-43E7-9B87-7514CBDF29B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6A402E57-96D7-43E7-9B87-7514CBDF29B0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,6 +1,7 @@
-using AuthorizationInterceptor.Entries;
 using AuthorizationInterceptor.Extensions;
-using AuthorizationInterceptor.Handlers;
+using AuthorizationInterceptor.Extensions.Abstractions.Handlers;
+using AuthorizationInterceptor.Extensions.Abstractions.Headers;
+using AuthorizationInterceptor.Extensions.Abstractions.Interceptors;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -13,8 +14,12 @@ builder.Services.AddHttpClient("TargetApiAuth")
     .ConfigureHttpClient(c => c.BaseAddress = new Uri("http://localhost:5121"));
 
 builder.Services.AddHttpClient("TargetApi")
-    .AddAuthorizationInterceptorHandler<TargetApiAuthClass>()
-    .BuildAuthorizationInterceptor()
+    .AddAuthorizationInterceptorHandler<TargetApiAuthClass>(opt =>
+    {
+        opt.UseCustomInterceptor<CustomInterceptor1>();
+        opt.UseCustomInterceptor<CustomInterceptor2>();
+        opt.UseCustomInterceptor<CustomInterceptor3>();
+    })
     .ConfigureHttpClient(c => c.BaseAddress = new Uri("http://localhost:5121"));
 
 var app = builder.Build();
@@ -57,19 +62,57 @@ public class TargetApiAuthClass : IAuthenticationHandler
         _client = httpClientFactory.CreateClient("TargetApiAuth");
     }
 
-    public async Task<AuthorizationEntry> AuthenticateAsync()
+    public async Task<AuthorizationHeaders> AuthenticateAsync()
     {
         var response = await _client.PostAsync("auth", null);
         var content = await response.Content.ReadAsStringAsync();
         var user = JsonSerializer.Deserialize<User>(content);
-        return new OAuthEntry(user.AccessToken, user.TokenType, user.ExpiresIn, user.RefreshToken);
+        return new OAuthHeaders(user.AccessToken, user.TokenType, user.ExpiresIn, user.RefreshToken);
     }
 
-    public async Task<AuthorizationEntry> UnauthenticateAsync(AuthorizationEntry? entries)
+    public async Task<AuthorizationHeaders> UnauthenticateAsync(AuthorizationHeaders? entries)
     {
-        var response = await _client.PostAsync($"refresh?refresh={entries.OAuthEntry.RefreshToken}", null);
+        var response = await _client.PostAsync($"refresh?refresh={entries.OAuthHeaders.RefreshToken}", null);
         var content = await response.Content.ReadAsStringAsync();
         var user = JsonSerializer.Deserialize<User>(content);
-        return new OAuthEntry(user.AccessToken, user.TokenType, user.ExpiresIn, user.RefreshToken);
+        return new OAuthHeaders(user.AccessToken, user.TokenType, user.ExpiresIn, user.RefreshToken);
+    }
+}
+public class CustomInterceptor1 : IAuthorizationInterceptor
+{
+    public Task<AuthorizationHeaders?> GetHeadersAsync()
+    {
+        return Task.FromResult<AuthorizationHeaders?>(null);
+    }
+
+    public Task UpdateHeadersAsync(AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders)
+    {
+        return Task.CompletedTask;
+    }
+}
+
+public class CustomInterceptor2 : IAuthorizationInterceptor
+{
+    public Task<AuthorizationHeaders?> GetHeadersAsync()
+    {
+        return Task.FromResult<AuthorizationHeaders?>(null);
+    }
+
+    public Task UpdateHeadersAsync(AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders)
+    {
+        return Task.CompletedTask;
+    }
+}
+
+public class CustomInterceptor3 : IAuthorizationInterceptor
+{
+    public Task<AuthorizationHeaders?> GetHeadersAsync()
+    {
+        return Task.FromResult<AuthorizationHeaders?>(null);
+    }
+
+    public Task UpdateHeadersAsync(AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders)
+    {
+        return Task.CompletedTask;
     }
 }

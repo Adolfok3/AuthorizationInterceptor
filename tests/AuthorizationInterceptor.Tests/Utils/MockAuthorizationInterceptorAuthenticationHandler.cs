@@ -1,16 +1,16 @@
-﻿using AuthorizationInterceptor.Entries;
-using AuthorizationInterceptor.Handlers;
+﻿using AuthorizationInterceptor.Extensions.Abstractions.Handlers;
+using AuthorizationInterceptor.Extensions.Abstractions.Headers;
 
 namespace AuthorizationInterceptor.Tests.Utils
 {
     public class MockAuthorizationInterceptorAuthenticationHandler : IAuthenticationHandler
     {
-        public Task<AuthorizationEntry> AuthenticateAsync()
+        public Task<AuthorizationHeaders> AuthenticateAsync()
         {
             throw new NotImplementedException();
         }
 
-        public Task<AuthorizationEntry> UnauthenticateAsync(AuthorizationEntry? entries)
+        public Task<AuthorizationHeaders> UnauthenticateAsync(AuthorizationHeaders? headers)
         {
             throw new NotImplementedException();
         }
