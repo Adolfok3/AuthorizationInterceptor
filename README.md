@@ -154,12 +154,12 @@ services.AddHttpClient("TargetApi")
 ```csharp
 public class MyCustomInterceptor : IAuthorizationInterceptor
 {
-    public async Task<AuthorizationHeaders?> GetHeadersAsync()
+    public async Task<AuthorizationHeaders?> GetHeadersAsync(string name)
     {
         //Do something and return the headers if exists in this context
     }
 
-    public async Task<AuthorizationHeaders?> UpdateHeadersAsync(AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders)
+    public async Task<AuthorizationHeaders?> UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders)
     {
         //Do something with expired headers if necessary and update with newHeaders
     }
@@ -167,3 +167,5 @@ public class MyCustomInterceptor : IAuthorizationInterceptor
 ```
 
 With this configuration, the Authorization Interceptor will create a sequence of: `MemoryCache > DistributedCache > MyCustomInterceptor > AuthenticationHandler > DistributedCache > MyCustomInterceptor > MemoryCache`.
+
+> The 'name' parameter refers to the name of the configured HttpClient. With this parameter you can differentiate between multiple httpclients configured using the same interceptor.
