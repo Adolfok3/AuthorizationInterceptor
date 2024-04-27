@@ -3,6 +3,8 @@ using AuthorizationInterceptor.Extensions.Abstractions.Headers;
 using AuthorizationInterceptor.Extensions.Abstractions.Interceptors;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace AuthorizationInterceptor.Strategies
@@ -10,19 +12,15 @@ namespace AuthorizationInterceptor.Strategies
     internal class AuthorizationInterceptorStrategy : IAuthorizationInterceptorStrategy
     {
         private readonly IAuthorizationInterceptor[] _interceptors;
-        private readonly IAuthenticationHandler _authenticationHandler;
-        private readonly ILogger _logger;
-        private readonly string _authenticationHandlerName;
+        private readonly ILogger<AuthorizationInterceptorStrategy> _logger;
 
-        public AuthorizationInterceptorStrategy(IAuthenticationHandler authenticationHandler, ILoggerFactory loggerFactory, IAuthorizationInterceptor[] interceptors)
+        public AuthorizationInterceptorStrategy(ILogger<AuthorizationInterceptorStrategy> logger, IEnumerable<IAuthorizationInterceptor> interceptors)
         {
-            _authenticationHandler = authenticationHandler;
-            _interceptors = interceptors;
-            _logger = loggerFactory.CreateLogger(nameof(AuthorizationInterceptorStrategy));
-            _authenticationHandlerName = _authenticationHandler.GetType().Name;
+            _logger = logger;
+            _interceptors = interceptors.ToArray();
         }
 
-        public async Task<AuthorizationHeaders?> GetHeadersAsync()
+        public async Task<AuthorizationHeaders?> GetHeadersAsync(string name, IAuthenticationHandler authenticationHandler)
         {
             AuthorizationHeaders? headers;
             int index;
@@ -31,34 +29,34 @@ namespace AuthorizationInterceptor.Strategies
             {
                 try
                 {
-                    Log("Getting headers from {interceptor}", _interceptors[index].GetType().Name);
-                    headers = await _interceptors[index].GetHeadersAsync();
+                    LogDebug("Getting headers from interceptor '{interceptor}' with integration '{name}'", _interceptors[index].GetType().Name, name);
+                    headers = await _interceptors[index].GetHeadersAsync(name);
                     if (headers != null)
-                        return await UpdateHeadersInInterceptorsAsync(index, headers);
+                        return await UpdateHeadersInInterceptorsAsync(name, index, headers);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error on getting headers from {interceptor}", _interceptors[index].GetType().Name);
+                    _logger.LogError(ex, "Error getting headers from interceptor '{interceptor}' with integration '{name}'", _interceptors[index].GetType().Name, name);
                 }
             }
 
-            Log("Getting headers from {authenticationHandler}", _authenticationHandlerName);
+            LogDebug("Getting headers from AuthenticationHandler '{authenticationHandler}' with integration '{name}'", authenticationHandler.GetType().Name, name);
 
-            headers = await _authenticationHandler.AuthenticateAsync();
-            return await UpdateHeadersInInterceptorsAsync(index, headers);
+            headers = await authenticationHandler.AuthenticateAsync();
+            return await UpdateHeadersInInterceptorsAsync(name, index, headers);
         }
 
-        public async Task<AuthorizationHeaders?> UpdateHeadersAsync(AuthorizationHeaders? expiredHeaders)
+        public async Task<AuthorizationHeaders?> UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, IAuthenticationHandler authenticationHandler)
         {
-            Log("Getting new headers from {authenticationHandler}", _authenticationHandlerName);
-            var newHeaders = await _authenticationHandler.UnauthenticateAsync(expiredHeaders);
+            LogDebug("Getting new headers from AuthenticationHandler '{authenticationHandler}' with integration '{name}'", authenticationHandler.GetType().Name, name);
+            var newHeaders = await authenticationHandler.UnauthenticateAsync(expiredHeaders);
             if (newHeaders == null)
                 return null;
 
-            return await UpdateHeadersInInterceptorsAsync(_interceptors.Length, newHeaders);
+            return await UpdateHeadersInInterceptorsAsync(name, _interceptors.Length, newHeaders);
         }
 
-        private async Task<AuthorizationHeaders?> UpdateHeadersInInterceptorsAsync(int startIndex, AuthorizationHeaders? headers = null)
+        private async Task<AuthorizationHeaders?> UpdateHeadersInInterceptorsAsync(string name, int startIndex, AuthorizationHeaders? headers = null)
         {
             if (headers == null)
                 return null;
@@ -67,19 +65,19 @@ namespace AuthorizationInterceptor.Strategies
             {
                 try
                 {
-                    Log("Updating headers in {interceptor}", _interceptors[index].GetType().Name);
-                    await _interceptors[index].UpdateHeadersAsync(null, headers);
+                    LogDebug("Updating headers in interceptor '{interceptor}' with integration '{name}'", _interceptors[index].GetType().Name, name);
+                    await _interceptors[index].UpdateHeadersAsync(name, null, headers);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error on updating headers in {interceptor}", _interceptors[index].GetType().Name);
+                    _logger.LogError(ex, "Error updating headers in interceptor '{interceptor}' with integration '{name}'", _interceptors[index].GetType().Name, name);
                 }
             }
 
             return headers;
         }
 
-        private void Log(string message, params object[] parameters)
+        private void LogDebug(string message, params object[] parameters)
         {
             if (_logger.IsEnabled(LogLevel.Debug))
                 _logger.LogDebug(message, parameters);

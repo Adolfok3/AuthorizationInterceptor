@@ -4,7 +4,7 @@ using AuthorizationInterceptor.Handlers;
 using AuthorizationInterceptor.Options;
 using AuthorizationInterceptor.Strategies;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,34 +26,33 @@ namespace AuthorizationInterceptor.Extensions
         public static IHttpClientBuilder AddAuthorizationInterceptorHandler<T>(this IHttpClientBuilder builder, Action<AuthorizationInterceptorOptions>? options = null)
             where T : class, IAuthenticationHandler
         {
-            options ??= (options => new AuthorizationInterceptorOptions());
-            var optionsInstance = new AuthorizationInterceptorOptions();
-            options.Invoke(optionsInstance);
-
-            AddInterceptorsDependencies(builder, optionsInstance._interceptors.Select(s => s.Item2).ToList());
-            builder.AddHttpMessageHandler(provider => new AuthorizationInterceptorHandler(optionsInstance, new AuthorizationInterceptorStrategy((IAuthenticationHandler)ActivatorUtilities.CreateInstance(provider, typeof(T)), provider.GetRequiredService<ILoggerFactory>(), CreateInterceptorsIntances(provider, optionsInstance._interceptors)), provider.GetRequiredService<ILoggerFactory>()));
+            var optionsInstance = RequireOptions(options);
+            AddInterceptorsDependencies(builder, optionsInstance._interceptors);
+            builder.Services.TryAddTransient<IAuthorizationInterceptorStrategy, AuthorizationInterceptorStrategy>();
+            builder.AddHttpMessageHandler(provider => ActivatorUtilities.CreateInstance<AuthorizationInterceptorHandler>(provider, builder.Name, optionsInstance.UnauthenticatedPredicate, ActivatorUtilities.CreateInstance(provider, typeof(T))));
 
             return builder;
         }
 
-        private static void AddInterceptorsDependencies(IHttpClientBuilder builder, List<Func<IServiceCollection, IServiceCollection>?> dependencies)
+        private static AuthorizationInterceptorOptions RequireOptions(Action<AuthorizationInterceptorOptions>? options)
         {
-            foreach (var dependency in dependencies)
-            {
-                dependency?.Invoke(builder.Services);
-            }
+            options ??= (options => new AuthorizationInterceptorOptions());
+            var optionsInstance = new AuthorizationInterceptorOptions();
+            options.Invoke(optionsInstance);
+
+            return optionsInstance;
         }
 
-        private static IAuthorizationInterceptor[] CreateInterceptorsIntances(IServiceProvider provider, List<(Type, Func<IServiceCollection, IServiceCollection>?)> interceptors)
+        private static void AddInterceptorsDependencies(IHttpClientBuilder builder, List<(ServiceDescriptor serviceDescriptor, Func<IServiceCollection, IServiceCollection>? dependencies)> interceptors)
         {
-            List<IAuthorizationInterceptor> interceptorsInstances = new();
-
             foreach (var interceptor in interceptors)
             {
-                interceptorsInstances.Add((IAuthorizationInterceptor)ActivatorUtilities.CreateInstance(provider, interceptor.Item1));
+                if (!builder.Services.Any(a => a.ServiceType == typeof(IAuthorizationInterceptor) && a.ImplementationType == interceptor.serviceDescriptor.ImplementationType))
+                {
+                    builder.Services.Add(interceptor.serviceDescriptor);
+                    interceptor.dependencies?.Invoke(builder.Services);
+                }
             }
-
-            return interceptorsInstances.ToArray();
         }
     }
 }
