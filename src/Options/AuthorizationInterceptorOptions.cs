@@ -13,7 +13,7 @@ namespace AuthorizationInterceptor.Options
     /// </summary>
     public class AuthorizationInterceptorOptions : IAuthorizationInterceptorOptions
     {
-        internal readonly List<(Type, Func<IServiceCollection, IServiceCollection>?)> _interceptors = new();
+        internal readonly List<(ServiceDescriptor, Func<IServiceCollection, IServiceCollection>?)> _interceptors = new();
 
         /// <summary>
         /// Defines a predicate to know when the request was unauthenticated. If this happens, a new authorization header will be generated. Default is response with <see cref="HttpStatusCode.Unauthorized"/>.
@@ -23,9 +23,9 @@ namespace AuthorizationInterceptor.Options
         /// <summary>
         /// <inheritdoc />
         /// </summary>
-        public void UseCustomInterceptor<T>(Func<IServiceCollection, IServiceCollection>? func = null) where T : IAuthorizationInterceptor
+        public void UseCustomInterceptor<T>(Func<IServiceCollection, IServiceCollection>? services = null) where T : IAuthorizationInterceptor
         {
-            _interceptors.Add((typeof(T), func));
+            _interceptors.Add((new ServiceDescriptor(typeof(IAuthorizationInterceptor), typeof(T), ServiceLifetime.Transient), services));
         }
     }
 }

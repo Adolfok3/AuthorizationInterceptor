@@ -11,60 +11,57 @@ namespace AuthorizationInterceptor.Tests.Strategies;
 
 public class AuthorizationInterceptorStrategyTests
 {
-    private readonly IAuthenticationHandler _authentication;
-    private readonly ILoggerFactory _factory;
+    private readonly IAuthorizationInterceptor _interceptor1;
+    private readonly IAuthorizationInterceptor _interceptor2;
+    private readonly IAuthorizationInterceptor _interceptor3;
     private IAuthorizationInterceptorStrategy _stategy;
 
     public AuthorizationInterceptorStrategyTests()
     {
-        _factory = Substitute.For<ILoggerFactory>();
-        var logger = Substitute.For<ILogger>();
+        _interceptor1 = Substitute.For<IAuthorizationInterceptor>();
+        _interceptor2 = Substitute.For<IAuthorizationInterceptor>();
+        _interceptor3 = Substitute.For<IAuthorizationInterceptor>();
+        var logger = Substitute.For<ILogger<AuthorizationInterceptorStrategy>>();
         logger.IsEnabled(LogLevel.Debug).Returns(true);
-        _factory.CreateLogger("AuthorizationInterceptorStrategy").Returns(logger);
-        _authentication = Substitute.For<IAuthenticationHandler>();
-        _stategy = new AuthorizationInterceptorStrategy(_authentication, _factory, []);
+        _stategy = new AuthorizationInterceptorStrategy(logger, [_interceptor1, _interceptor2, _interceptor3]);
     }
 
     [Fact]
     public async Task GetHeadersAsync_ShouldGetOnlyInAuthenticationHandler()
     {
         //Arrange
-        _authentication.AuthenticateAsync().Returns(Task.FromResult<AuthorizationHeaders?>(null));
+        var authentication = Substitute.For<IAuthenticationHandler>();
+        authentication.AuthenticateAsync().Returns(Task.FromResult<AuthorizationHeaders?>(null));
 
         //Act
-        var headers = await _stategy.GetHeadersAsync();
+        var headers = await _stategy.GetHeadersAsync("test", authentication);
 
         //Assert
         Assert.Null(headers);
-        await _authentication.Received(1).AuthenticateAsync();
+        await authentication.Received(1).AuthenticateAsync();
     }
 
     [Fact]
     public async Task GetHeadersAsync_ShouldGetFromSecondInterceptor()
     {
         //Arrange
-        var interceptor1 = Substitute.For<IAuthorizationInterceptor>();
-        var interceptor2 = Substitute.For<IAuthorizationInterceptor>();
-        var interceptor3 = Substitute.For<IAuthorizationInterceptor>();
-        interceptor1.GetHeadersAsync().Returns(Task.FromResult<AuthorizationHeaders?>(null));
-        interceptor2.GetHeadersAsync().Returns(Task.FromResult<AuthorizationHeaders?>(MockAuthorizationHeaders.CreateHeaders()));
-        interceptor3.GetHeadersAsync().Returns(Task.FromResult<AuthorizationHeaders?>(null));
-        IAuthorizationInterceptor[] interceptors = [interceptor1, interceptor2, interceptor3];
-
-        _stategy = new AuthorizationInterceptorStrategy(_authentication, _factory, interceptors);
+        var authentication = Substitute.For<IAuthenticationHandler>();
+        _interceptor1.GetHeadersAsync("test").Returns(Task.FromResult<AuthorizationHeaders?>(null));
+        _interceptor2.GetHeadersAsync("test").Returns(Task.FromResult<AuthorizationHeaders?>(MockAuthorizationHeaders.CreateHeaders()));
+        _interceptor3.GetHeadersAsync("test").Returns(Task.FromResult<AuthorizationHeaders?>(null));
 
         //Act
-        var headers = await _stategy.GetHeadersAsync();
+        var headers = await _stategy.GetHeadersAsync("test", authentication);
 
         //Assert
         Assert.NotNull(headers);
-        await interceptor1.Received(1).GetHeadersAsync();
-        await interceptor2.Received(1).GetHeadersAsync();
-        await interceptor3.Received(0).GetHeadersAsync();
-        await interceptor1.Received(1).UpdateHeadersAsync(null, headers);
-        await interceptor2.Received(0).UpdateHeadersAsync(null, headers);
-        await interceptor3.Received(0).UpdateHeadersAsync(null, headers);
-        await _authentication.Received(0).AuthenticateAsync();
+        await _interceptor1.Received(1).GetHeadersAsync("test");
+        await _interceptor2.Received(1).GetHeadersAsync("test");
+        await _interceptor3.Received(0).GetHeadersAsync("test");
+        await _interceptor1.Received(1).UpdateHeadersAsync("test", null, headers);
+        await _interceptor2.Received(0).UpdateHeadersAsync("test", null, headers);
+        await _interceptor3.Received(0).UpdateHeadersAsync("test", null, headers);
+        await authentication.Received(0).AuthenticateAsync();
     }
 
 
@@ -72,52 +69,43 @@ public class AuthorizationInterceptorStrategyTests
     public async Task GetHeadersAsync_ShouldGetFromThirdInterceptor_WithSecondError()
     {
         //Arrange
-        var interceptor1 = Substitute.For<IAuthorizationInterceptor>();
-        var interceptor2 = Substitute.For<IAuthorizationInterceptor>();
-        var interceptor3 = Substitute.For<IAuthorizationInterceptor>();
-        interceptor1.GetHeadersAsync().Returns(Task.FromResult<AuthorizationHeaders?>(null));
-        interceptor2.GetHeadersAsync().ThrowsAsync(new ArgumentException());
-        interceptor3.GetHeadersAsync().Returns(Task.FromResult<AuthorizationHeaders?>(MockAuthorizationHeaders.CreateHeaders()));
-        IAuthorizationInterceptor[] interceptors = [interceptor1, interceptor2, interceptor3];
-
-        _stategy = new AuthorizationInterceptorStrategy(_authentication, _factory, interceptors);
+        var authentication = Substitute.For<IAuthenticationHandler>();
+        _interceptor1.GetHeadersAsync("test").Returns(Task.FromResult<AuthorizationHeaders?>(null));
+        _interceptor2.GetHeadersAsync("test").ThrowsAsync(new ArgumentException());
+        _interceptor3.GetHeadersAsync("test").Returns(Task.FromResult<AuthorizationHeaders?>(MockAuthorizationHeaders.CreateHeaders()));
 
         //Act
-        var headers = await _stategy.GetHeadersAsync();
+        var headers = await _stategy.GetHeadersAsync("test", authentication);
 
         //Assert
         Assert.NotNull(headers);
-        await interceptor1.Received(1).GetHeadersAsync();
-        await interceptor2.Received(1).GetHeadersAsync();
-        await interceptor3.Received(1).GetHeadersAsync();
-        await interceptor1.Received(1).UpdateHeadersAsync(null, headers);
-        await interceptor2.Received(1).UpdateHeadersAsync(null, headers);
-        await interceptor3.Received(0).UpdateHeadersAsync(null, headers);
-        await _authentication.Received(0).AuthenticateAsync();
+        await _interceptor1.Received(1).GetHeadersAsync("test");
+        await _interceptor2.Received(1).GetHeadersAsync("test");
+        await _interceptor3.Received(1).GetHeadersAsync("test");
+        await _interceptor1.Received(1).UpdateHeadersAsync("test", null, headers);
+        await _interceptor2.Received(1).UpdateHeadersAsync("test", null, headers);
+        await _interceptor3.Received(0).UpdateHeadersAsync("test", null, headers);
+        await authentication.Received(0).AuthenticateAsync();
     }
 
     [Fact]
-    public async Task UpdateHeadersAsync_ShouldNotUpdateInInterceptors()
+    public async Task UpdateHeadersAsync_ShouldNotUpdateInSecondInterceptors()
     {
         //Arrange
-        var interceptor1 = Substitute.For<IAuthorizationInterceptor>();
-        var interceptor2 = Substitute.For<IAuthorizationInterceptor>();
-        var interceptor3 = Substitute.For<IAuthorizationInterceptor>();
-        interceptor2.UpdateHeadersAsync(Arg.Any<AuthorizationHeaders?>(), Arg.Any<AuthorizationHeaders?>()).ThrowsAsync(new ArgumentException());
-        IAuthorizationInterceptor[] interceptors = [interceptor1, interceptor2, interceptor3];
-        _stategy = new AuthorizationInterceptorStrategy(_authentication, _factory, interceptors);
-        _authentication.UnauthenticateAsync(null).Returns(Task.FromResult<AuthorizationHeaders?>(MockAuthorizationHeaders.CreateHeaders()));
+        var authentication = Substitute.For<IAuthenticationHandler>();
+        _interceptor2.UpdateHeadersAsync("test", Arg.Any<AuthorizationHeaders?>(), Arg.Any<AuthorizationHeaders?>()).ThrowsAsync(new ArgumentException());
+        authentication.UnauthenticateAsync(null).Returns(Task.FromResult<AuthorizationHeaders?>(MockAuthorizationHeaders.CreateHeaders()));
 
         //Act
-        var act = () => _stategy.UpdateHeadersAsync(null);
+        var act = () => _stategy.UpdateHeadersAsync("test", null, authentication);
 
         //Assert
         Assert.Null(await Record.ExceptionAsync(act));
-        await _authentication.Received(1).UnauthenticateAsync(null);
-        await _authentication.Received(0).AuthenticateAsync();
-        await interceptor1.Received(1).UpdateHeadersAsync(Arg.Any<AuthorizationHeaders?>(), Arg.Any<AuthorizationHeaders?>());
-        await interceptor2.Received(1).UpdateHeadersAsync(Arg.Any<AuthorizationHeaders?>(), Arg.Any<AuthorizationHeaders?>());
-        await interceptor3.Received(1).UpdateHeadersAsync(Arg.Any<AuthorizationHeaders?>(), Arg.Any<AuthorizationHeaders?>());
+        await authentication.Received(1).UnauthenticateAsync(null);
+        await authentication.Received(0).AuthenticateAsync();
+        await _interceptor1.Received(1).UpdateHeadersAsync("test", Arg.Any<AuthorizationHeaders?>(), Arg.Any<AuthorizationHeaders?>());
+        await _interceptor2.Received(1).UpdateHeadersAsync("test", Arg.Any<AuthorizationHeaders?>(), Arg.Any<AuthorizationHeaders?>());
+        await _interceptor3.Received(1).UpdateHeadersAsync("test", Arg.Any<AuthorizationHeaders?>(), Arg.Any<AuthorizationHeaders?>());
     }
 
 
@@ -126,22 +114,18 @@ public class AuthorizationInterceptorStrategyTests
     public async Task UpdateHeadersAsync_ShouldUpdateInInterceptors()
     {
         //Arrange
-        var interceptor1 = Substitute.For<IAuthorizationInterceptor>();
-        var interceptor2 = Substitute.For<IAuthorizationInterceptor>();
-        var interceptor3 = Substitute.For<IAuthorizationInterceptor>();
-        IAuthorizationInterceptor[] interceptors = [interceptor1, interceptor2, interceptor3];
-        _stategy = new AuthorizationInterceptorStrategy(_authentication, _factory, interceptors);
-        _authentication.UnauthenticateAsync(null).Returns(Task.FromResult<AuthorizationHeaders?>(null));
+        var authentication = Substitute.For<IAuthenticationHandler>();
+        authentication.UnauthenticateAsync(null).Returns(Task.FromResult<AuthorizationHeaders?>(null));
 
         //Act
-        var act = () => _stategy.UpdateHeadersAsync(null);
+        var act = () => _stategy.UpdateHeadersAsync("test", null, authentication);
 
         //Assert
         Assert.Null(await Record.ExceptionAsync(act));
-        await _authentication.Received(1).UnauthenticateAsync(null);
-        await _authentication.Received(0).AuthenticateAsync();
-        await interceptor1.Received(0).UpdateHeadersAsync(Arg.Any<AuthorizationHeaders?>(), Arg.Any<AuthorizationHeaders?>());
-        await interceptor2.Received(0).UpdateHeadersAsync(Arg.Any<AuthorizationHeaders?>(), Arg.Any<AuthorizationHeaders?>());
-        await interceptor3.Received(0).UpdateHeadersAsync(Arg.Any<AuthorizationHeaders?>(), Arg.Any<AuthorizationHeaders?>());
+        await authentication.Received(1).UnauthenticateAsync(null);
+        await authentication.Received(0).AuthenticateAsync();
+        await _interceptor1.Received(0).UpdateHeadersAsync("test", Arg.Any<AuthorizationHeaders?>(), Arg.Any<AuthorizationHeaders?>());
+        await _interceptor2.Received(0).UpdateHeadersAsync("test", Arg.Any<AuthorizationHeaders?>(), Arg.Any<AuthorizationHeaders?>());
+        await _interceptor3.Received(0).UpdateHeadersAsync("test", Arg.Any<AuthorizationHeaders?>(), Arg.Any<AuthorizationHeaders?>());
     }
 }

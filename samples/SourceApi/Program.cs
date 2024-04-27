@@ -80,12 +80,12 @@ public class TargetApiAuthClass : IAuthenticationHandler
 }
 public class CustomInterceptor1 : IAuthorizationInterceptor
 {
-    public Task<AuthorizationHeaders?> GetHeadersAsync()
+    public Task<AuthorizationHeaders?> GetHeadersAsync(string name)
     {
         return Task.FromResult<AuthorizationHeaders?>(null);
     }
 
-    public Task UpdateHeadersAsync(AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders)
+    public Task UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders)
     {
         return Task.CompletedTask;
     }
@@ -93,12 +93,12 @@ public class CustomInterceptor1 : IAuthorizationInterceptor
 
 public class CustomInterceptor2 : IAuthorizationInterceptor
 {
-    public Task<AuthorizationHeaders?> GetHeadersAsync()
+    public Task<AuthorizationHeaders?> GetHeadersAsync(string name)
     {
         return Task.FromResult<AuthorizationHeaders?>(null);
     }
 
-    public Task UpdateHeadersAsync(AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders)
+    public Task UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders)
     {
         return Task.CompletedTask;
     }
@@ -106,12 +106,12 @@ public class CustomInterceptor2 : IAuthorizationInterceptor
 
 public class CustomInterceptor3 : IAuthorizationInterceptor
 {
-    public Task<AuthorizationHeaders?> GetHeadersAsync()
+    public Task<AuthorizationHeaders?> GetHeadersAsync(string name)
     {
         return Task.FromResult<AuthorizationHeaders?>(null);
     }
 
-    public Task UpdateHeadersAsync(AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders)
+    public Task UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders)
     {
         return Task.CompletedTask;
     }
