@@ -61,7 +61,7 @@ namespace AuthorizationInterceptor.Strategies
             if (headers == null)
                 return null;
 
-            for (int index = startIndex - 1; index >= 0; index--)
+            for (var index = startIndex - 1; index >= 0; index--)
             {
                 try
                 {

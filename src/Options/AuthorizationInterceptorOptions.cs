@@ -9,11 +9,11 @@ using System.Net.Http;
 namespace AuthorizationInterceptor.Options
 {
     /// <summary>
-    /// <inheritdoc />
+    /// Options class that configures the authorization interceptors
     /// </summary>
     public class AuthorizationInterceptorOptions : IAuthorizationInterceptorOptions
     {
-        internal readonly List<(ServiceDescriptor, Func<IServiceCollection, IServiceCollection>?)> _interceptors = new();
+        internal readonly List<(ServiceDescriptor, Func<IServiceCollection, IServiceCollection>?)> Interceptors = new();
 
         /// <summary>
         /// Defines a predicate to know when the request was unauthenticated. If this happens, a new authorization header will be generated. Default is response with <see cref="HttpStatusCode.Unauthorized"/>.
@@ -21,11 +21,13 @@ namespace AuthorizationInterceptor.Options
         public Func<HttpResponseMessage, bool> UnauthenticatedPredicate { get; set; } = (response) => response.StatusCode == HttpStatusCode.Unauthorized;
 
         /// <summary>
-        /// <inheritdoc />
+        /// Adds a custom interceptor to the interceptor sequence. Note that the interceptor addition sequence interferes with the headers query sequence.
         /// </summary>
-        public void UseCustomInterceptor<T>(Func<IServiceCollection, IServiceCollection>? services = null) where T : IAuthorizationInterceptor
+        /// <typeparam name="T">Implementation class of type <see cref="IAuthorizationInterceptor"/></typeparam>
+        /// <param name="func">Access to <see cref="IServiceCollection"/> if necessary</param>
+        public void UseCustomInterceptor<T>(Func<IServiceCollection, IServiceCollection>? func = null) where T : IAuthorizationInterceptor
         {
-            _interceptors.Add((new ServiceDescriptor(typeof(IAuthorizationInterceptor), typeof(T), ServiceLifetime.Transient), services));
+            Interceptors.Add((new ServiceDescriptor(typeof(IAuthorizationInterceptor), typeof(T), ServiceLifetime.Transient), func));
         }
     }
 }
