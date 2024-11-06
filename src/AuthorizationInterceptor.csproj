@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<Version>2.1.0</Version>
+		<Version>2.1.2</Version>
 		<TargetFrameworks>net5.0;net6.0;net7.0;net8.0</TargetFrameworks>
 		<ImplicitUsings>disable</ImplicitUsings>
 		<Nullable>enable</Nullable>
@@ -15,26 +15,13 @@
 		<Description>A simple and lightweight .NET package designed to streamline HttpClient authenticated requests</Description>
 		<PackageTags>dotnet;c#;.net;core;authorization;authentication;interceptor;httpclient;rest;api;auth;headers;cache;memory;distributed;refit;request;response;anauthoriezed;</PackageTags>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<NuGetAudit>true</NuGetAudit>
+		<NuGetAuditMode>all</NuGetAuditMode>
+		<NuGetAuditLevel>moderate</NuGetAuditLevel>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="AuthorizationInterceptor.Extensions.Abstractions" Version="2.1.0" />
-	</ItemGroup>
-	
-	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-		<PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(TargetFramework)' == 'net7.0'">
-		<PackageReference Include="Microsoft.Extensions.Http" Version="7.0.0" />
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
-		<PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0" />
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(TargetFramework)' == 'net5.0'">
-		<PackageReference Include="Microsoft.Extensions.Http" Version="5.0.0" />
+		<PackageReference Include="AuthorizationInterceptor.Extensions.Abstractions" Version="2.1.1" />
 	</ItemGroup>
 
 	<ItemGroup>

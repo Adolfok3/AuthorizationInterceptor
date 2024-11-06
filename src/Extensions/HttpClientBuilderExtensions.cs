@@ -27,7 +27,7 @@ namespace AuthorizationInterceptor.Extensions
             where T : class, IAuthenticationHandler
         {
             var optionsInstance = RequireOptions(options);
-            AddInterceptorsDependencies(builder, optionsInstance._interceptors);
+            AddInterceptorsDependencies(builder, optionsInstance.Interceptors);
             builder.Services.TryAddTransient<IAuthorizationInterceptorStrategy, AuthorizationInterceptorStrategy>();
             builder.AddHttpMessageHandler(provider => ActivatorUtilities.CreateInstance<AuthorizationInterceptorHandler>(provider, builder.Name, optionsInstance.UnauthenticatedPredicate, ActivatorUtilities.CreateInstance(provider, typeof(T))));
 
@@ -36,7 +36,7 @@ namespace AuthorizationInterceptor.Extensions
 
         private static AuthorizationInterceptorOptions RequireOptions(Action<AuthorizationInterceptorOptions>? options)
         {
-            options ??= (options => new AuthorizationInterceptorOptions());
+            options ??= (_ => new AuthorizationInterceptorOptions());
             var optionsInstance = new AuthorizationInterceptorOptions();
             options.Invoke(optionsInstance);
 
@@ -47,11 +47,12 @@ namespace AuthorizationInterceptor.Extensions
         {
             foreach (var interceptor in interceptors)
             {
-                if (!builder.Services.Any(a => a.ServiceType == typeof(IAuthorizationInterceptor) && a.ImplementationType == interceptor.serviceDescriptor.ImplementationType))
-                {
-                    builder.Services.Add(interceptor.serviceDescriptor);
-                    interceptor.dependencies?.Invoke(builder.Services);
-                }
+                if (builder.Services.Any(a =>
+                        a.ServiceType == typeof(IAuthorizationInterceptor) && a.ImplementationType ==
+                        interceptor.serviceDescriptor.ImplementationType)) continue;
+                
+                builder.Services.Add(interceptor.serviceDescriptor);
+                interceptor.dependencies?.Invoke(builder.Services);
             }
         }
     }
