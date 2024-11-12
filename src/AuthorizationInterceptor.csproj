@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<Version>2.1.2</Version>
-		<TargetFrameworks>net5.0;net6.0;net7.0;net8.0</TargetFrameworks>
+		<Version>2.2.0</Version>
+		<TargetFrameworks>net5.0;net6.0;net7.0;net8.0;net9.0</TargetFrameworks>
 		<ImplicitUsings>disable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<Title>Authorization Interceptor</Title>
@@ -21,7 +21,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="AuthorizationInterceptor.Extensions.Abstractions" Version="2.1.1" />
+		<PackageReference Include="AuthorizationInterceptor.Extensions.Abstractions" Version="2.2.0" />
 	</ItemGroup>
 
 	<ItemGroup>
