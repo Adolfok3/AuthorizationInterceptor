@@ -5,5 +5,5 @@ namespace AuthorizationInterceptor.Tests.Utils;
 public static class MockAuthorizationHeaders
 {
     public static AuthorizationHeaders CreateHeaders()
-        => new OAuthHeaders("test", "test", 100, "test", "test");
+        => new OAuthHeaders("test", "test", 100, "test", 300);
 }

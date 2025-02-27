@@ -29,17 +29,16 @@ namespace AuthorizationInterceptor.Handlers
 
         protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            return SendWithInterceptorAsync(request, cancellationToken).GetAwaiter().GetResult();
+            _logger.LogWarning("AuthorizationInterceptor is not available for synchronous requests. Consider using asynchronous requests!");
+            return base.Send(request, cancellationToken);
         }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            return await SendWithInterceptorAsync(request, cancellationToken);
-        }
+            => await SendWithInterceptorAsync(request, cancellationToken);
 
         private async Task<HttpResponseMessage> SendWithInterceptorAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            var headers = await _strategy.GetHeadersAsync(_name, _authenticationHandler);
+            var headers = await _strategy.GetHeadersAsync(_name, _authenticationHandler, cancellationToken);
             if (headers == null || !headers.Any())
             {
                 LogDebug("No headers added to request with integration '{name}'", _name);
@@ -53,7 +52,7 @@ namespace AuthorizationInterceptor.Handlers
                 return response;
 
             LogDebug("Caught unauthenticated predicate from response with integration '{name}'", _name);
-            headers = await _strategy.UpdateHeadersAsync(_name, headers, _authenticationHandler);
+            headers = await _strategy.UpdateHeadersAsync(_name, headers, _authenticationHandler, cancellationToken);
             if (headers == null || !headers.Any())
             {
                 LogDebug("No headers added to request with integration '{name}'", _name);
@@ -72,6 +71,8 @@ namespace AuthorizationInterceptor.Handlers
                 LogDebug("Adding header '{header}' to request with integration '{name}'", header.Key, _name);
                 request.Headers.Remove(header.Key);
                 request.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                if (!request.Headers.Contains(header.Key))
+                    _logger.LogWarning("Was not possible to add the Header '{header}' to request with integration '{name}'", header.Key, _name);
             }
 
             return request;

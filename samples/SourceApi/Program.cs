@@ -51,6 +51,9 @@ public class User
 
     [JsonPropertyName("expires_in")]
     public int ExpiresIn { get; set; }
+
+    [JsonPropertyName("refresh_token_expires_in")]
+    public int RefreshTokenExpiresIn { get; set; }
 }
 
 public class TargetApiAuthClass : IAuthenticationHandler
@@ -62,57 +65,52 @@ public class TargetApiAuthClass : IAuthenticationHandler
         _client = httpClientFactory.CreateClient("TargetApiAuth");
     }
 
-    public async Task<AuthorizationHeaders> AuthenticateAsync()
+    public async ValueTask<AuthorizationHeaders?> AuthenticateAsync(AuthorizationHeaders? expiredHeaders, CancellationToken cancellationToken)
     {
-        var response = await _client.PostAsync("auth", null);
-        var content = await response.Content.ReadAsStringAsync();
-        var user = JsonSerializer.Deserialize<User>(content);
-        return new OAuthHeaders(user.AccessToken, user.TokenType, user.ExpiresIn, user.RefreshToken);
-    }
+        var response = expiredHeaders != null && expiredHeaders.OAuthHeaders != null
+            ? await _client.PostAsync($"refresh?refresh={expiredHeaders.OAuthHeaders?.RefreshToken}", null)
+            : await _client.PostAsync("auth", null);
 
-    public async Task<AuthorizationHeaders> UnauthenticateAsync(AuthorizationHeaders? entries)
-    {
-        var response = await _client.PostAsync($"refresh?refresh={entries.OAuthHeaders.RefreshToken}", null);
         var content = await response.Content.ReadAsStringAsync();
         var user = JsonSerializer.Deserialize<User>(content);
-        return new OAuthHeaders(user.AccessToken, user.TokenType, user.ExpiresIn, user.RefreshToken);
+        return new OAuthHeaders(user.AccessToken, user.TokenType, user.ExpiresIn, user.RefreshToken, user.RefreshTokenExpiresIn);
     }
 }
 public class CustomInterceptor1 : IAuthorizationInterceptor
 {
-    public Task<AuthorizationHeaders?> GetHeadersAsync(string name)
+    public ValueTask<AuthorizationHeaders?> GetHeadersAsync(string name, CancellationToken cancellationToken)
     {
-        return Task.FromResult<AuthorizationHeaders?>(null);
+        return ValueTask.FromResult<AuthorizationHeaders?>(null);
     }
 
-    public Task UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders)
+    public ValueTask UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders, CancellationToken cancellationToken)
     {
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }
 
 public class CustomInterceptor2 : IAuthorizationInterceptor
 {
-    public Task<AuthorizationHeaders?> GetHeadersAsync(string name)
+    public ValueTask<AuthorizationHeaders?> GetHeadersAsync(string name, CancellationToken cancellationToken)
     {
-        return Task.FromResult<AuthorizationHeaders?>(null);
+        return ValueTask.FromResult<AuthorizationHeaders?>(null);
     }
 
-    public Task UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders)
+    public ValueTask UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders, CancellationToken cancellationToken)
     {
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }
 
 public class CustomInterceptor3 : IAuthorizationInterceptor
 {
-    public Task<AuthorizationHeaders?> GetHeadersAsync(string name)
+    public ValueTask<AuthorizationHeaders?> GetHeadersAsync(string name, CancellationToken cancellationToken)
     {
-        return Task.FromResult<AuthorizationHeaders?>(null);
+        return ValueTask.FromResult<AuthorizationHeaders?>(null);
     }
 
-    public Task UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders)
+    public ValueTask UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders, CancellationToken cancellationToken)
     {
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }
