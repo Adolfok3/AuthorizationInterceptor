@@ -15,15 +15,31 @@ public class AuthorizationInterceptorStrategyTests
     private readonly IAuthorizationInterceptor _interceptor2;
     private readonly IAuthorizationInterceptor _interceptor3;
     private IAuthorizationInterceptorStrategy _stategy;
+    private readonly ILogger<AuthorizationInterceptorStrategy> _logger;
 
     public AuthorizationInterceptorStrategyTests()
     {
         _interceptor1 = Substitute.For<IAuthorizationInterceptor>();
         _interceptor2 = Substitute.For<IAuthorizationInterceptor>();
         _interceptor3 = Substitute.For<IAuthorizationInterceptor>();
-        var logger = Substitute.For<ILogger<AuthorizationInterceptorStrategy>>();
-        logger.IsEnabled(LogLevel.Debug).Returns(true);
-        _stategy = new AuthorizationInterceptorStrategy(logger, [_interceptor1, _interceptor2, _interceptor3]);
+        _logger = Substitute.For<ILogger<AuthorizationInterceptorStrategy>>();
+        _logger.IsEnabled(LogLevel.Debug).Returns(true);
+        _stategy = new AuthorizationInterceptorStrategy(_logger, [_interceptor1, _interceptor2, _interceptor3]);
+    }
+
+    [Fact]
+    public async Task GetHeadersAsync_WithCancellationToken_ShouldThrowsOperationCanceledException()
+    {
+        //Arrange
+        var authentication = Substitute.For<IAuthenticationHandler>();
+        var cancellationToken = new CancellationTokenSource(TimeSpan.FromMilliseconds(1));
+        authentication.AuthenticateAsync(null, cancellationToken.Token).Returns(ValueTask.FromResult<AuthorizationHeaders?>(null));
+
+        //Act
+        Func<Task> act = async () => await _stategy.GetHeadersAsync("test", authentication, cancellationToken.Token);
+
+        //Assert
+        await Assert.ThrowsAsync<OperationCanceledException>(act);
     }
 
     [Fact]

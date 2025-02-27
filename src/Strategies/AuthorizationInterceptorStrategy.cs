@@ -53,6 +53,7 @@ namespace AuthorizationInterceptor.Strategies
                 }
                 catch (OperationCanceledException)
                 {
+                    _logger.LogWarning("Operation canceled while getting headers from interceptor '{interceptor}' with integration '{name}'", _interceptors[index].GetType().Name, name);
                     throw;
                 }
                 catch (Exception ex)
@@ -99,6 +100,7 @@ namespace AuthorizationInterceptor.Strategies
                 }
                 catch (OperationCanceledException)
                 {
+                    _logger.LogWarning("Operation canceled while updating headers in interceptor '{interceptor}' with integration '{name}'", _interceptors[index].GetType().Name, name);
                     throw;
                 }
                 catch (Exception ex)

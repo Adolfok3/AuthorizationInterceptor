@@ -69,10 +69,7 @@ namespace AuthorizationInterceptor.Handlers
             foreach (var header in headers)
             {
                 LogDebug("Adding header '{header}' to request with integration '{name}'", header.Key, _name);
-                request.Headers.Remove(header.Key);
                 request.Headers.TryAddWithoutValidation(header.Key, header.Value);
-                if (!request.Headers.Contains(header.Key))
-                    _logger.LogWarning("Was not possible to add the Header '{header}' to request with integration '{name}'", header.Key, _name);
             }
 
             return request;

@@ -10,21 +10,35 @@ namespace AuthorizationInterceptor.Tests.Handlers;
 
 public class AuthorizationInterceptorHandlerTests
 {
+    private readonly ILogger<AuthorizationInterceptorHandler> _logger;
     private readonly IAuthorizationInterceptorStrategy _strategy;
     private readonly IAuthenticationHandler _authenticationHandler;
     private readonly HttpClient _client;
 
     public AuthorizationInterceptorHandlerTests()
     {
-        var logger = Substitute.For<ILogger<AuthorizationInterceptorHandler>>();
-        logger.IsEnabled(LogLevel.Debug).Returns(true);
+        _logger = Substitute.For<ILogger<AuthorizationInterceptorHandler>>();
+        _logger.IsEnabled(LogLevel.Debug).Returns(true);
         Func<HttpResponseMessage, bool> func = f => f.StatusCode == System.Net.HttpStatusCode.Unauthorized;
         _strategy = Substitute.For<IAuthorizationInterceptorStrategy>();
         _authenticationHandler = Substitute.For<IAuthenticationHandler>();
 
-        var handler = new AuthorizationInterceptorHandler("test", func, _authenticationHandler, _strategy, logger);
+        var handler = new AuthorizationInterceptorHandler("test", func, _authenticationHandler, _strategy, _logger);
         handler.InnerHandler = new MockAuthorizationInterceptorHandler();
         _client = new HttpClient(handler);
+    }
+
+    [Fact]
+    public void SendSync_ShouldLogWarning()
+    {
+        //Arrange
+        var request = new HttpRequestMessage(HttpMethod.Get, "http://somesite.com");
+
+        //Act
+        _client.Send(request);
+
+        //Assert
+        _logger.Received(1).LogWarning("AuthorizationInterceptor is not available for synchronous requests. Consider using asynchronous requests!");
     }
 
     [Fact]
