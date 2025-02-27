@@ -32,7 +32,10 @@ public class AuthorizationInterceptorStrategyTests
     {
         //Arrange
         var authentication = Substitute.For<IAuthenticationHandler>();
-        var cancellationToken = new CancellationTokenSource(TimeSpan.FromMilliseconds(1));
+        var cancellationToken = new CancellationTokenSource(TimeSpan.FromMicroseconds(1));
+        _interceptor1.GetHeadersAsync("test", Arg.Any<CancellationToken>()).Returns(ValueTask.FromResult<AuthorizationHeaders?>(null));
+        _interceptor2.GetHeadersAsync("test", Arg.Any<CancellationToken>()).Returns(ValueTask.FromResult<AuthorizationHeaders?>(null));
+        _interceptor3.GetHeadersAsync("test", Arg.Any<CancellationToken>()).Returns(ValueTask.FromResult<AuthorizationHeaders?>(null));
         authentication.AuthenticateAsync(null, cancellationToken.Token).Returns(ValueTask.FromResult<AuthorizationHeaders?>(null));
 
         //Act
@@ -175,6 +178,21 @@ public class AuthorizationInterceptorStrategyTests
         await _interceptor2.Received(1).UpdateHeadersAsync("test", null, headers, Arg.Any<CancellationToken>());
         await _interceptor3.Received(0).UpdateHeadersAsync("test", null, headers, Arg.Any<CancellationToken>());
         await authentication.Received(0).AuthenticateAsync(null, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task UpdateHeadersAsync_WithCancellationToken_ShouldThrowsOperationCanceledException()
+    {
+        //Arrange
+        var authentication = Substitute.For<IAuthenticationHandler>();
+        var cancellationToken = new CancellationTokenSource(TimeSpan.FromMicroseconds(1));
+        authentication.AuthenticateAsync(null, cancellationToken.Token).Returns(ValueTask.FromResult<AuthorizationHeaders?>(null));
+
+        //Act
+        Func<Task> act = async () => await _stategy.UpdateHeadersAsync("test", null, authentication, cancellationToken.Token);
+
+        //Assert
+        await Assert.ThrowsAsync<OperationCanceledException>(act);
     }
 
     [Fact]
