@@ -36,23 +36,22 @@ namespace AuthorizationInterceptor.Extensions
 
         private static AuthorizationInterceptorOptions RequireOptions(Action<AuthorizationInterceptorOptions>? options)
         {
-            options ??= (_ => new AuthorizationInterceptorOptions());
             var optionsInstance = new AuthorizationInterceptorOptions();
-            options.Invoke(optionsInstance);
+            options?.Invoke(optionsInstance);
 
             return optionsInstance;
         }
 
         private static void AddInterceptorsDependencies(IHttpClientBuilder builder, List<(ServiceDescriptor serviceDescriptor, Func<IServiceCollection, IServiceCollection>? dependencies)> interceptors)
         {
-            foreach (var interceptor in interceptors)
+            foreach (var (serviceDescriptor, dependencies) in interceptors)
             {
                 if (builder.Services.Any(a =>
                         a.ServiceType == typeof(IAuthorizationInterceptor) && a.ImplementationType ==
-                        interceptor.serviceDescriptor.ImplementationType)) continue;
+                        serviceDescriptor.ImplementationType)) continue;
                 
-                builder.Services.Add(interceptor.serviceDescriptor);
-                interceptor.dependencies?.Invoke(builder.Services);
+                builder.Services.Add(serviceDescriptor);
+                dependencies?.Invoke(builder.Services);
             }
         }
     }

@@ -5,12 +5,7 @@ namespace AuthorizationInterceptor.Tests.Utils
 {
     public class MockAuthorizationInterceptorAuthenticationHandler : IAuthenticationHandler
     {
-        public Task<AuthorizationHeaders> AuthenticateAsync()
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<AuthorizationHeaders> UnauthenticateAsync(AuthorizationHeaders? headers)
+        public ValueTask<AuthorizationHeaders?> AuthenticateAsync(AuthorizationHeaders? expiredHeaders, CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
         }

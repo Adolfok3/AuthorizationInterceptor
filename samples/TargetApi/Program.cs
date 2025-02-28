@@ -23,6 +23,7 @@ app.MapPost("/auth", (UserContainer users) =>
         RefreshToken = Guid.NewGuid().ToString(),
         TokenType = "Bearer",
         ExpiresIn = 30,
+        RefreshTokenExpiresIn = 60,
         ExpiresAt = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30),
     };
 
@@ -46,8 +47,9 @@ app.MapPost("/refresh", (UserContainer users, [FromQuery] string refresh) =>
         AccessToken = Guid.NewGuid().ToString(),
         RefreshToken = Guid.NewGuid().ToString(),
         TokenType = "Bearer",
-        ExpiresIn = 60,
-        ExpiresAt = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30),
+        ExpiresIn = 30,
+        RefreshTokenExpiresIn = 60,
+        ExpiresAt = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30)
     };
 
     users.Users.Add(user);
@@ -86,6 +88,9 @@ public class User
 
     [JsonPropertyName("expires_in")]
     public int ExpiresIn { get; set; }
+
+    [JsonPropertyName("refresh_token_expires_in")]
+    public int RefreshTokenExpiresIn { get; set; }
 
     [JsonIgnore]
     public DateTimeOffset ExpiresAt { get; set; }

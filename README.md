@@ -36,33 +36,38 @@ This will make the `TargetApi` HttpClient use the Authorization Interceptor hand
 
 > By default, the package will not use any interceptor to store authorization headers so the recommendation is to use at least [AuthorizationInterceptor.Extensions.MemoryCache](https://nuget.org/packages/AuthorizationInterceptor.Extensions.MemoryCache) package to store and manage the authorization headers lifecycle. Checkout [Interceptors section](#interceptors).
 
-The `TargetApiAuthClass` must implement the `IAuthenticationHandler` interface, so that the package can perform the necessary dependency injection and know where and when to generate the authorization. An example implementation of the class would look like this:
+The `TargetApiAuthClass` must implement the `IAuthenticationHandler` interface, so that the package can perform the necessary dependency and know where and when to generate the authorization headers. An example implementation of the class would look like this:
 
 ```csharp
-public class TargetApiAuthClass : IAuthenticationHandler
+public async ValueTask<AuthorizationHeaders?> AuthenticateAsync(AuthorizationHeaders? expiredHeaders, CancellationToken cancellation)
 {
-    public async Task<AuthorizationHeaders?> AuthenticateAsync()
+    HttpResponseMessage? response = null;
+
+    if (expiredHeaders == null)
     {
-        //The login call to the target API should be placed here, and it should return the authorization headers.
-        var authorization = LoginToMyTargetApi();
-        return new OAuthHeaders(authorization.AccessToken, authorization.TokenType, authorization.ExpiresIn, authorization.RefreshToken);
+        // Generate the login for the first time and return the authorization headers
+        response = await _client.PostAsync("auth", null, cancellation);
+    }
+    else
+    {
+        // If a previous login was made, the expiredHeaders will be passed and you can reuse to reauthenticate. It is most commonly used for integrations with APIs that use RefreshToken.
+        // If the target API does not have the refresh token functionality, you will not need to implement this if condition e you can ignore the parameter 'expiredHeaders' performing always a new login
+        response = await _client.PostAsync($"refresh?refresh={expiredHeaders.OAuthHeaders!.RefreshToken}", null, cancellation);
     }
 
-    public async Task<AuthorizationHeaders?> UnauthenticateAsync(AuthorizationHeaders? expiredHeaders)
-    {
-        //This method is called when the interceptor captures a response with a status code of 401. It is most commonly used for integrations with APIs that use RefreshToken. If the target API does not have the refresh token functionality, you should implement the same call as in the `AuthenticateAsync` method.
-        var newHeaders = LoginWithRefreshToMyTargetApi(expiredHeaders.OAuthHeaders.RefreshToken);
-        return new OAuthHeaders(newHeaders.AccessToken, newHeaders.TokenType, newHeaders.ExpiresIn, newHeaders.RefreshToken);
-    }
+    var content = await response.Content.ReadAsStringAsync(cancellation);
+    var newHeaders = JsonSerializer.Deserialize<User>(content)!;
+
+    return new OAuthHeaders(newHeaders.AccessToken, newHeaders.TokenType, newHeaders.ExpiresIn, newHeaders.RefreshToken, newHeaders.RefreshTokenExpiresIn);
 }
 ```
 
-In the example above, we showed the `TargetApiAuthClass` class, which must implement the authentication methods with the target API. Initially, the authorization headers do not exist, so the package will call the `AuthenticateAsync` method just once and will store the authorization in memory cache (if the MemoryCache package was installed and configured), always consulting it from there. However, if there is a response with status code 401 (unauthorized), the package will call the `UnauthenticateAsync` method, passing the old/expired authorization and will return the new authorization.
+In the example above, we showed the `TargetApiAuthClass` class, which must implement the authentication methods with the target API. Initially, the authorization headers do not exist, so the package will call the `AuthenticateAsync` method just once and will store the authorization in memory cache (if the MemoryCache package was installed and configured), always consulting it from there. However, if there is a response with status code 401 (unauthorized), the package will call the `AuthenticateAsync` again, passing the old/expired authorization and will return the new authorization.
 
-> Note that in the `AuthenticateAsync` and `UnauthenticateAsync` methods the return type is `AuthorizationHeaders` but in the example above an `OAuthHeaders` is returned, because in this example we are assuming that the target API uses the OAuth2 authentication mechanism. However, if your target API does not have this functionality you can return a new object of type `AuthorizationHeaders` that inherits from a class `Dictionary<string, string>`. In practice, it would look like this:
+> Note that in the `AuthenticateAsync` method the return type is `AuthorizationHeaders` but in the example above an `OAuthHeaders` is returned, because in this example we are assuming that the target API uses the OAuth2 authentication mechanism. However, if your target API does not have this functionality you can return a new object of type `AuthorizationHeaders` that inherits from a class `Dictionary<string, string>`. In practice, it would look like this:
 
 ```csharp
-public async Task<AuthorizationHeaders?> AuthenticateAsync()
+public async ValueTask<AuthorizationHeaders?> AuthenticateAsync(AuthorizationHeaders? expiredHeaders, CancellationToken cancellation)
     {
         return new AuthorizationHeaders
         {
@@ -146,12 +151,12 @@ services.AddHttpClient("TargetApi")
 ```csharp
 public class MyCustomInterceptor : IAuthorizationInterceptor
 {
-    public async Task<AuthorizationHeaders?> GetHeadersAsync(string name)
+    public ValueTask<AuthorizationHeaders?> GetHeadersAsync(string name, CancellationToken cancellationToken)
     {
         //Do something and return the headers if exists in this context
     }
 
-    public async Task<AuthorizationHeaders?> UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders)
+    public ValueTask UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders, CancellationToken cancellationToken)
     {
         //Do something with expired headers if necessary and update with newHeaders
     }
@@ -161,3 +166,7 @@ public class MyCustomInterceptor : IAuthorizationInterceptor
 With this configuration, the Authorization Interceptor will create a sequence of: `MemoryCache > DistributedCache > MyCustomInterceptor > AuthenticationHandler > DistributedCache > MyCustomInterceptor > MemoryCache`.
 
 > The 'name' parameter refers to the name of the configured HttpClient. With this parameter you can differentiate between multiple httpclients configured using the same interceptor.
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

@@ -10,36 +10,35 @@ namespace AuthorizationInterceptor.Tests.Handlers;
 
 public class AuthorizationInterceptorHandlerTests
 {
+    private readonly ILogger<AuthorizationInterceptorHandler> _logger;
     private readonly IAuthorizationInterceptorStrategy _strategy;
     private readonly IAuthenticationHandler _authenticationHandler;
     private readonly HttpClient _client;
 
     public AuthorizationInterceptorHandlerTests()
     {
-        var logger = Substitute.For<ILogger<AuthorizationInterceptorHandler>>();
-        logger.IsEnabled(LogLevel.Debug).Returns(true);
+        _logger = Substitute.For<ILogger<AuthorizationInterceptorHandler>>();
+        _logger.IsEnabled(LogLevel.Debug).Returns(true);
         Func<HttpResponseMessage, bool> func = f => f.StatusCode == System.Net.HttpStatusCode.Unauthorized;
         _strategy = Substitute.For<IAuthorizationInterceptorStrategy>();
         _authenticationHandler = Substitute.For<IAuthenticationHandler>();
 
-        var handler = new AuthorizationInterceptorHandler("test", func, _authenticationHandler, _strategy, logger);
+        var handler = new AuthorizationInterceptorHandler("test", func, _authenticationHandler, _strategy, _logger);
         handler.InnerHandler = new MockAuthorizationInterceptorHandler();
         _client = new HttpClient(handler);
     }
 
     [Fact]
-    public async Task Send_WithoutHeaders_ShouldSendRequestCorrectly()
+    public void SendSync_ShouldLogWarning()
     {
         //Arrange
         var request = new HttpRequestMessage(HttpMethod.Get, "http://somesite.com");
 
         //Act
-        var response = _client.Send(request, CancellationToken.None);
+        _client.Send(request);
 
         //Assert
-        Assert.True(response.IsSuccessStatusCode);
-        await _strategy.Received(0).UpdateHeadersAsync("test", Arg.Any<AuthorizationHeaders>(), _authenticationHandler);
-        await _strategy.Received(1).GetHeadersAsync("test", _authenticationHandler);
+        _logger.Received(1).LogWarning("AuthorizationInterceptor is not available for synchronous requests. Consider using asynchronous requests!");
     }
 
     [Fact]
@@ -53,15 +52,15 @@ public class AuthorizationInterceptorHandlerTests
 
         //Assert
         Assert.True(response.IsSuccessStatusCode);
-        await _strategy.Received(0).UpdateHeadersAsync("test", Arg.Any<AuthorizationHeaders>(), _authenticationHandler);
-        await _strategy.Received(1).GetHeadersAsync("test", _authenticationHandler);
+        await _strategy.Received(0).UpdateHeadersAsync("test", Arg.Any<AuthorizationHeaders>(), _authenticationHandler, Arg.Any<CancellationToken>());
+        await _strategy.Received(1).GetHeadersAsync("test", _authenticationHandler, Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task SendAsync_WithHeaders_ShouldSendRequestCorrectly()
     {
         //Arrange
-        _strategy.GetHeadersAsync("test", _authenticationHandler).Returns(new AuthorizationHeaders(TimeSpan.FromMinutes(3))
+        _strategy.GetHeadersAsync("test", _authenticationHandler, Arg.Any<CancellationToken>()).Returns(new AuthorizationHeaders(TimeSpan.FromMinutes(3))
         {
             { "Authorization", "Bearer token" }
         });
@@ -72,15 +71,15 @@ public class AuthorizationInterceptorHandlerTests
 
         //Assert
         Assert.True(response.IsSuccessStatusCode);
-        await _strategy.Received(0).UpdateHeadersAsync("test", Arg.Any<AuthorizationHeaders>(), _authenticationHandler);
-        await _strategy.Received(1).GetHeadersAsync("test", _authenticationHandler);
+        await _strategy.Received(0).UpdateHeadersAsync("test", Arg.Any<AuthorizationHeaders>(), _authenticationHandler, Arg.Any<CancellationToken>());
+        await _strategy.Received(1).GetHeadersAsync("test", _authenticationHandler, Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task SendAsync_WithHeaders_ShouldReturnsAnauthorized()
     {
         //Arrange
-        _strategy.GetHeadersAsync("test", _authenticationHandler).Returns(new AuthorizationHeaders(TimeSpan.FromMinutes(3))
+        _strategy.GetHeadersAsync("test", _authenticationHandler, Arg.Any<CancellationToken>()).Returns(new AuthorizationHeaders(TimeSpan.FromMinutes(3))
         {
             { "ShouldReturnUnauthorized", "ShouldReturnUnauthorized" }
         });
@@ -91,7 +90,7 @@ public class AuthorizationInterceptorHandlerTests
 
         //Assert
         Assert.False(response.IsSuccessStatusCode);
-        await _strategy.Received(1).UpdateHeadersAsync("test", Arg.Any<AuthorizationHeaders>(), _authenticationHandler);
-        await _strategy.Received(1).GetHeadersAsync("test", _authenticationHandler);
+        await _strategy.Received(1).UpdateHeadersAsync("test", Arg.Any<AuthorizationHeaders>(), _authenticationHandler, Arg.Any<CancellationToken>());
+        await _strategy.Received(1).GetHeadersAsync("test", _authenticationHandler, Arg.Any<CancellationToken>());
     }
 }

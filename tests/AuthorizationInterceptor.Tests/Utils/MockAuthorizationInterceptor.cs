@@ -5,14 +5,14 @@ namespace AuthorizationInterceptor.Tests.Utils
 {
     public class MockAuthorizationInterceptor : IAuthorizationInterceptor
     {
-        public Task<AuthorizationHeaders?> GetHeadersAsync(string name)
+        public ValueTask<AuthorizationHeaders?> GetHeadersAsync(string name, CancellationToken cancellationToken)
         {
-            return Task.FromResult<AuthorizationHeaders?>(null);
+            return ValueTask.FromResult<AuthorizationHeaders?>(null);
         }
 
-        public Task UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders)
+        public ValueTask UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders, CancellationToken cancellationToken)
         {
-            return Task.FromResult<AuthorizationHeaders?>(null);
+            return ValueTask.CompletedTask;
         }
     }
 }
