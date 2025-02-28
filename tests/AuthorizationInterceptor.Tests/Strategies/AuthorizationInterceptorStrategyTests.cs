@@ -32,11 +32,9 @@ public class AuthorizationInterceptorStrategyTests
     {
         //Arrange
         var authentication = Substitute.For<IAuthenticationHandler>();
-        var cancellationToken = new CancellationTokenSource(TimeSpan.FromMicroseconds(1));
-        _interceptor1.GetHeadersAsync("test", Arg.Any<CancellationToken>()).Returns(ValueTask.FromResult<AuthorizationHeaders?>(null));
-        _interceptor2.GetHeadersAsync("test", Arg.Any<CancellationToken>()).Returns(ValueTask.FromResult<AuthorizationHeaders?>(null));
-        _interceptor3.GetHeadersAsync("test", Arg.Any<CancellationToken>()).Returns(ValueTask.FromResult<AuthorizationHeaders?>(null));
-        authentication.AuthenticateAsync(null, cancellationToken.Token).Returns(ValueTask.FromResult<AuthorizationHeaders?>(null));
+        var cancellationToken = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+        var mock = Task.Delay(2000).ContinueWith(_ => MockAuthorizationHeaders.CreateHeaders());
+        _interceptor1.GetHeadersAsync("test", Arg.Any<CancellationToken>()).Returns(new ValueTask<AuthorizationHeaders?>(mock));
 
         //Act
         Func<Task> act = async () => await _stategy.GetHeadersAsync("test", authentication, cancellationToken.Token);
@@ -185,8 +183,11 @@ public class AuthorizationInterceptorStrategyTests
     {
         //Arrange
         var authentication = Substitute.For<IAuthenticationHandler>();
-        var cancellationToken = new CancellationTokenSource(TimeSpan.FromMicroseconds(1));
-        authentication.AuthenticateAsync(null, cancellationToken.Token).Returns(ValueTask.FromResult<AuthorizationHeaders?>(null));
+        var cancellationToken = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+        var mock = Task.Delay(2000).ContinueWith(_ => ValueTask.CompletedTask);
+        authentication.AuthenticateAsync(null, Arg.Any<CancellationToken>()).Returns(ValueTask.FromResult<AuthorizationHeaders?>(MockAuthorizationHeaders.CreateHeaders()));
+        _interceptor1.UpdateHeadersAsync("test", Arg.Any<AuthorizationHeaders?>(), Arg.Any<AuthorizationHeaders?>(), Arg.Any<CancellationToken>()).Returns(new ValueTask(mock));
+        _interceptor2.UpdateHeadersAsync("test", Arg.Any<AuthorizationHeaders?>(), Arg.Any<AuthorizationHeaders?>(), Arg.Any<CancellationToken>()).Returns(new ValueTask(mock));
 
         //Act
         Func<Task> act = async () => await _stategy.UpdateHeadersAsync("test", null, authentication, cancellationToken.Token);
