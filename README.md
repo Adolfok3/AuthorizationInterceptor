@@ -109,6 +109,7 @@ services.AddHttpClient("TargetApi")
 
 - [AuthorizationInterceptor.Extensions.MemoryCache](https://github.com/Adolfok3/AuthorizationInterceptor.Extensions.MemoryCache)
 - [AuthorizationInterceptor.Extensions.DistributedCache](https://github.com/Adolfok3/AuthorizationInterceptor.Extensions.DistributedCache)
+- [AuthorizationInterceptor.Extensions.HybridCache](https://github.com/Adolfok3/AuthorizationInterceptor.Extensions.HybridCache)
 
 > If you need an specific interceptor integration and doesnt exists here, checkout the [AuthorizationInterceptor.Extensions.Abstractions](https://github.com/Adolfok3/AuthorizationInterceptor.Extensions.Abstractions) to create your own interceptor.
 
