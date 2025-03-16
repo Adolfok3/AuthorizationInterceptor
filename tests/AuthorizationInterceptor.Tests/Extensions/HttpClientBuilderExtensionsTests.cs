@@ -1,7 +1,6 @@
 ﻿using AuthorizationInterceptor.Extensions;
 using AuthorizationInterceptor.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
 
 namespace AuthorizationInterceptor.Tests.Extensions;
 
