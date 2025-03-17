@@ -16,10 +16,6 @@
 		<PackageReference Include="Microsoft.Extensions.Http" Version="6.0.1" />
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)' == 'net5.0'">
-		<PackageReference Include="Microsoft.Extensions.Http" Version="5.0.0" />
-	</ItemGroup>
-
 	<ItemGroup>
 		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
 			<_Parameter1>AuthorizationInterceptor.Extensions.Abstractions.Tests</_Parameter1>

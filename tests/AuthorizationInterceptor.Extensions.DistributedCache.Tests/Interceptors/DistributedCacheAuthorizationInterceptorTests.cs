@@ -33,7 +33,7 @@ public class DistributedCacheAuthorizationInterceptorTests
         //Act
         headers = await _interceptor.GetHeadersAsync("test", CancellationToken.None);
 
-        //
+        //Assert
         headers.Should().NotBeNull();
         headers!.AuthenticatedAt.Should().NotBe(DateTimeOffset.MinValue);
         headers.ExpiresIn.Should().Be(TimeSpan.FromMinutes(3));

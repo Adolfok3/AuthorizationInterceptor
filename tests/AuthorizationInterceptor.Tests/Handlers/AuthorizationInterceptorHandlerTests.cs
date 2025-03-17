@@ -1,6 +1,7 @@
 ﻿using AuthorizationInterceptor.Extensions.Abstractions.Handlers;
 using AuthorizationInterceptor.Extensions.Abstractions.Headers;
 using AuthorizationInterceptor.Handlers;
+using AuthorizationInterceptor.Log;
 using AuthorizationInterceptor.Strategies;
 using AuthorizationInterceptor.Tests.Utils;
 using Microsoft.Extensions.Logging;
@@ -9,20 +10,24 @@ namespace AuthorizationInterceptor.Tests.Handlers;
 
 public class AuthorizationInterceptorHandlerTests
 {
-    private readonly ILogger<AuthorizationInterceptorHandler> _logger;
+    private readonly ILogger _logger;
     private readonly IAuthorizationInterceptorStrategy _strategy;
     private readonly IAuthenticationHandler _authenticationHandler;
     private readonly HttpClient _client;
 
     public AuthorizationInterceptorHandlerTests()
     {
-        _logger = Substitute.For<ILogger<AuthorizationInterceptorHandler>>();
+        _logger = Substitute.For<ILogger>();
         _logger.IsEnabled(LogLevel.Debug).Returns(true);
+        var loggerFactory = Substitute.For<ILoggerFactory>();
+        loggerFactory.CreateLogger("AuthorizationInterceptorHandler").Returns(_logger);
+
+
         Func<HttpResponseMessage, bool> func = f => f.StatusCode == System.Net.HttpStatusCode.Unauthorized;
         _strategy = Substitute.For<IAuthorizationInterceptorStrategy>();
         _authenticationHandler = Substitute.For<IAuthenticationHandler>();
 
-        var handler = new AuthorizationInterceptorHandler("test", func, _authenticationHandler, _strategy, _logger);
+        var handler = new AuthorizationInterceptorHandler("test", func, _authenticationHandler, _strategy, loggerFactory);
         handler.InnerHandler = new MockAuthorizationInterceptorHandler();
         _client = new HttpClient(handler);
     }
@@ -37,7 +42,7 @@ public class AuthorizationInterceptorHandlerTests
         _client.Send(request);
 
         //Assert
-        _logger.Received(1).LogWarning("AuthorizationInterceptor is not available for synchronous requests. Consider using asynchronous requests!");
+        _logger.Received(1).LogUnavailableForSyncRequests();
     }
 
     [Fact]

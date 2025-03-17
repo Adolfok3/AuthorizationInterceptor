@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,8 +16,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.MapPost("/auth", (UserContainer users) =>
+app.MapPost("/auth", (UserContainer users, ILoggerFactory loggerFactory) =>
 {
+    var logger = loggerFactory.CreateLogger("TargetApi");
+    logger.LogDebug("Received request on /auth endpoint");
     var user = new User
     {
         AccessToken = Guid.NewGuid().ToString(),
@@ -33,8 +36,11 @@ app.MapPost("/auth", (UserContainer users) =>
 .WithName("auth")
 .WithOpenApi();
 
-app.MapPost("/refresh", (UserContainer users, [FromQuery] string refresh) =>
+app.MapPost("/refresh", (UserContainer users, [FromQuery] string refresh, ILoggerFactory loggerFactory) =>
 {
+    var logger = loggerFactory.CreateLogger("TargetApi");
+    logger.LogDebug("Received request on /refresh endpoint");
+
     if (string.IsNullOrEmpty(refresh))
         return Results.Unauthorized();
 
@@ -58,8 +64,11 @@ app.MapPost("/refresh", (UserContainer users, [FromQuery] string refresh) =>
 .WithName("refresh")
 .WithOpenApi();
 
-app.MapGet("/data", (HttpRequest request, UserContainer users, [FromHeader(Name = "Authorization")] string? token = null) =>
+app.MapGet("/data", (HttpRequest request, UserContainer users, ILoggerFactory loggerFactory, [FromHeader(Name = "Authorization")] string? token = null) =>
 {
+    var logger = loggerFactory.CreateLogger("TargetApi");
+    logger.LogDebug("Received request on /data endpoint");
+
     if (string.IsNullOrWhiteSpace(token))
         return Results.Unauthorized();
 

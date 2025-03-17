@@ -1,0 +1,5 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AuthorizationInterceptor.Extensions.HybridCache\AuthorizationInterceptor.Extensions.HybridCache.csproj" />
+  </ItemGroup>
+</Project>
