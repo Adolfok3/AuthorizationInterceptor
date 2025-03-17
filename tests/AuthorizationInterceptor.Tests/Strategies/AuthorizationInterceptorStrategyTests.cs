@@ -14,16 +14,18 @@ public class AuthorizationInterceptorStrategyTests
     private readonly IAuthorizationInterceptor _interceptor2;
     private readonly IAuthorizationInterceptor _interceptor3;
     private IAuthorizationInterceptorStrategy _stategy;
-    private readonly ILogger<AuthorizationInterceptorStrategy> _logger;
+    private readonly ILogger _logger;
 
     public AuthorizationInterceptorStrategyTests()
     {
         _interceptor1 = Substitute.For<IAuthorizationInterceptor>();
         _interceptor2 = Substitute.For<IAuthorizationInterceptor>();
         _interceptor3 = Substitute.For<IAuthorizationInterceptor>();
-        _logger = Substitute.For<ILogger<AuthorizationInterceptorStrategy>>();
+        _logger = Substitute.For<ILogger>();
         _logger.IsEnabled(LogLevel.Debug).Returns(true);
-        _stategy = new AuthorizationInterceptorStrategy(_logger, [_interceptor1, _interceptor2, _interceptor3]);
+        var loggerFactory = Substitute.For<ILoggerFactory>();
+        loggerFactory.CreateLogger("AuthorizationInterceptorStrategy").Returns(_logger);
+        _stategy = new AuthorizationInterceptorStrategy(loggerFactory, [_interceptor1, _interceptor2, _interceptor3]);
     }
 
     [Fact]

@@ -2,6 +2,9 @@ using AuthorizationInterceptor.Extensions;
 using AuthorizationInterceptor.Extensions.Abstractions.Handlers;
 using AuthorizationInterceptor.Extensions.Abstractions.Headers;
 using AuthorizationInterceptor.Extensions.Abstractions.Interceptors;
+using AuthorizationInterceptor.Extensions.DistributedCache.Extensions;
+using AuthorizationInterceptor.Extensions.HybridCache.Extensions;
+using AuthorizationInterceptor.Extensions.MemoryCache.Extensions;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -10,12 +13,49 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Add the cache options
+builder.Services.AddMemoryCache();
+builder.Services.AddStackExchangeRedisCache(opt =>
+{
+    opt.InstanceName = "SourceApi";
+    opt.Configuration = "localhost:6379";
+});
+builder.Services.AddHybridCache();
+
 builder.Services.AddHttpClient("TargetApiAuth")
     .ConfigureHttpClient(c => c.BaseAddress = new Uri("http://localhost:5121"));
 
-builder.Services.AddHttpClient("TargetApi")
+builder.Services.AddHttpClient("TargetApiWithNoInterceptor")
+    .AddAuthorizationInterceptorHandler<TargetApiAuthClass>()
+    .ConfigureHttpClient(c => c.BaseAddress = new Uri("http://localhost:5121"));
+
+builder.Services.AddHttpClient("TargetApiWithMemoryCache")
     .AddAuthorizationInterceptorHandler<TargetApiAuthClass>(opt =>
     {
+        opt.UseMemoryCacheInterceptor();
+    })
+    .ConfigureHttpClient(c => c.BaseAddress = new Uri("http://localhost:5121"));
+
+builder.Services.AddHttpClient("TargetApiWithDistributedCache")
+    .AddAuthorizationInterceptorHandler<TargetApiAuthClass>(opt =>
+    {
+        opt.UseDistributedCacheInterceptor();
+    })
+    .ConfigureHttpClient(c => c.BaseAddress = new Uri("http://localhost:5121"));
+
+builder.Services.AddHttpClient("TargetApiWithHybridCache")
+    .AddAuthorizationInterceptorHandler<TargetApiAuthClass>(opt =>
+    {
+        opt.UseHybridCacheInterceptor();
+    })
+    .ConfigureHttpClient(c => c.BaseAddress = new Uri("http://localhost:5121"));
+
+builder.Services.AddHttpClient("TargetApiWithCustomInterceptors")
+    .AddAuthorizationInterceptorHandler<TargetApiAuthClass>(opt =>
+    {
+        opt.UseMemoryCacheInterceptor();
+        opt.UseDistributedCacheInterceptor();
+
         opt.UseCustomInterceptor<CustomInterceptor1>();
         opt.UseCustomInterceptor<CustomInterceptor2>();
         opt.UseCustomInterceptor<CustomInterceptor3>();
@@ -30,9 +70,33 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.MapGet("/data", async (IHttpClientFactory factory) =>
+app.MapGet("/test/TargetApiWithNoInterceptor", async (IHttpClientFactory factory) =>
 {
-    var client = factory.CreateClient("TargetApi");
+    var client = factory.CreateClient("TargetApiWithNoInterceptor");
+    return await client.GetAsync("/data");
+});
+
+app.MapGet("/test/TargetApiWithMemoryCache", async (IHttpClientFactory factory) =>
+{
+    var client = factory.CreateClient("TargetApiWithMemoryCache");
+    return await client.GetAsync("/data");
+});
+
+app.MapGet("/test/TargetApiWithDistributedCache", async (IHttpClientFactory factory) =>
+{
+    var client = factory.CreateClient("TargetApiWithDistributedCache");
+    return await client.GetAsync("/data");
+});
+
+app.MapGet("/test/TargetApiWithHybridCache", async (IHttpClientFactory factory) =>
+{
+    var client = factory.CreateClient("TargetApiWithHybridCache");
+    return await client.GetAsync("/data");
+});
+
+app.MapGet("/test/TargetApiWithCustomInterceptors", async (IHttpClientFactory factory) =>
+{
+    var client = factory.CreateClient("TargetApiWithCustomInterceptors");
     return await client.GetAsync("/data");
 });
 

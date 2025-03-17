@@ -8,11 +8,17 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="9.3.0" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.2" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\AuthorizationInterceptor.csproj" />
+    <ProjectReference Include="..\..\src\AuthorizationInterceptor.Extensions.DistributedCache\AuthorizationInterceptor.Extensions.DistributedCache.csproj" />
+    <ProjectReference Include="..\..\src\AuthorizationInterceptor.Extensions.HybridCache\AuthorizationInterceptor.Extensions.HybridCache.csproj" />
+    <ProjectReference Include="..\..\src\AuthorizationInterceptor.Extensions.MemoryCache\AuthorizationInterceptor.Extensions.MemoryCache.csproj" />
+    <ProjectReference Include="..\..\src\AuthorizationInterceptor\AuthorizationInterceptor.csproj" />
   </ItemGroup>
 
 </Project>
