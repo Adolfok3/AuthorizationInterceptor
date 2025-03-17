@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\AuthorizationInterceptor.Extensions.Abstractions\AuthorizationInterceptor.Extensions.Abstractions.csproj" />
+	</ItemGroup>
+
+</Project>

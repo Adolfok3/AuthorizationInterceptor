@@ -17,7 +17,7 @@ jobs:
       with:
         dotnet-version: 9.0.x
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore --property NuGetAudit=true --property NuGetAuditMode=All --property NuGetAuditLevel=Moderate
     - name: Build
       run: dotnet build --no-restore
     
@@ -47,11 +47,11 @@ jobs:
       with:
         dotnet-version: 9.0.x
     - name: Generate coverage report
-      run: |
-        cd tests/AuthorizationInterceptor.Tests
-        dotnet test /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov
-    - name: Publish coverage report to coveralls.io
-      uses: coverallsapp/github-action@master
+      run: dotnet test /p:CollectCoverage=true /p:ExcludeByAttribute="GeneratedCodeAttribute" /p:ExcludeByAttribute="CompilerGeneratedAttribute" /p:CoverletOutputFormat=\"json,cobertura\" /p:CoverletOutput=../../coverage/ /p:MergeWith=../../coverage/coverage.json
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v5
       with:
-        github-token: ${{ secrets.github_token }}
-        path-to-lcov: tests/AuthorizationInterceptor.Tests/TestResults/coverage.info
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: coverage/coverage.cobertura.xml
+        fail_ci_if_error: true
+        verbose: true

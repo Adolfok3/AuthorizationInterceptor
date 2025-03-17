@@ -1,0 +1,63 @@
+<Project>
+  <PropertyGroup>
+	<LangVersion>13</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+	<Nullable>enable</Nullable>
+	<Version>5.0.0-beta</Version>
+	<TargetFrameworks>net5.0;net6.0;net7.0;net8.0;net9.0</TargetFrameworks>
+	<Title>Authorization Interceptor</Title>
+	<Authors>Adolfok3</Authors>
+	<Copyright>MIT</Copyright>
+	<PackageProjectUrl>https://github.com/Adolfok3/authorizationinterceptor</PackageProjectUrl>
+	<PackageIcon>icon.png</PackageIcon>
+	<PackageReadmeFile>README.md</PackageReadmeFile>
+	<RepositoryUrl>https://github.com/Adolfok3/authorizationinterceptor</RepositoryUrl>
+	<Description>A simple and lightweight .NET package designed to streamline HttpClient authenticated requests</Description>
+	<PackageTags>dotnet;c#;.net;core;authorization;authentication;interceptor;httpclient;rest;api;auth;headers;cache;memory;distributed;refit;request;response;anauthoriezed;</PackageTags>
+	<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+	<NuGetAudit>true</NuGetAudit>
+	<NuGetAuditMode>all</NuGetAuditMode>
+	<NuGetAuditLevel>moderate</NuGetAuditLevel>
+	<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'AuthorizationInterceptor.Extensions.MemoryCache' Or '$(MSBuildProjectName)' == 'AuthorizationInterceptor.Extensions.DistributedCache'">
+    <IsCachingAbstractionsTargeted>true</IsCachingAbstractionsTargeted>
+  </PropertyGroup>
+  
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'AuthorizationInterceptor'">
+    <IsMainPackage>true</IsMainPackage>
+  </PropertyGroup>
+  
+  <ItemGroup>
+	<None Include="../../resources/icon.png" Pack="true" Visible="false" PackagePath="" />
+  </ItemGroup>
+  
+  <ItemGroup Condition="'$(IsMainPackage)' == 'true'">
+    <None Include="../../README.md" Pack="true" Visible="false" PackagePath="" />
+  </ItemGroup>
+  
+  <ItemGroup Condition="'$(IsMainPackage)' != 'true'">
+    <None Include="./README.md" Pack="true" Visible="false" PackagePath="" />
+  </ItemGroup>
+  
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0' And '$(IsCachingAbstractionsTargeted)' == 'true'">
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="9.0.3" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0' And '$(IsCachingAbstractionsTargeted)' == 'true'">
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net7.0' And '$(IsCachingAbstractionsTargeted)' == 'true'">
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="7.0.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net6.0' And '$(IsCachingAbstractionsTargeted)' == 'true'">
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="6.0.1" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net5.0' And '$(IsCachingAbstractionsTargeted)' == 'true'">
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="5.0.0" />
+  </ItemGroup>
+</Project>

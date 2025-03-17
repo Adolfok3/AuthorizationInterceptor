@@ -4,7 +4,6 @@ using AuthorizationInterceptor.Handlers;
 using AuthorizationInterceptor.Strategies;
 using AuthorizationInterceptor.Tests.Utils;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
 
 namespace AuthorizationInterceptor.Tests.Handlers;
 

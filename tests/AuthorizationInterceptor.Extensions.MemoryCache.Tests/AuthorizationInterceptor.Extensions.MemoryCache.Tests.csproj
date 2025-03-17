@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\AuthorizationInterceptor.Extensions.MemoryCache\AuthorizationInterceptor.Extensions.MemoryCache.csproj" />
+	</ItemGroup>
+</Project>

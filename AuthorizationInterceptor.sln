@@ -3,9 +3,25 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.9.34622.214
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AuthorizationInterceptor", "src\AuthorizationInterceptor.csproj", "{1B7ED06E-1A27-4019-B1B6-FF2FA4BA35C3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AuthorizationInterceptor", "src\AuthorizationInterceptor\AuthorizationInterceptor.csproj", "{1B7ED06E-1A27-4019-B1B6-FF2FA4BA35C3}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AuthorizationInterceptor.Tests", "tests\AuthorizationInterceptor.Tests\AuthorizationInterceptor.Tests.csproj", "{815498BE-8A6E-4DB2-AF29-74076D73086D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthorizationInterceptor.Extensions.Abstractions", "src\AuthorizationInterceptor.Extensions.Abstractions\AuthorizationInterceptor.Extensions.Abstractions.csproj", "{F4BD2CE8-6ECA-A565-5E47-94993FE7CD87}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthorizationInterceptor.Extensions.DistributedCache", "src\AuthorizationInterceptor.Extensions.DistributedCache\AuthorizationInterceptor.Extensions.DistributedCache.csproj", "{3EA3CF7B-3EF9-641D-53A8-EB97478D49B6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthorizationInterceptor.Extensions.MemoryCache", "src\AuthorizationInterceptor.Extensions.MemoryCache\AuthorizationInterceptor.Extensions.MemoryCache.csproj", "{6AD52180-C286-5051-45C1-BC272B245B0A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthorizationInterceptor.Extensions.Abstractions.Tests", "tests\AuthorizationInterceptor.Extensions.Abstractions.Tests\AuthorizationInterceptor.Extensions.Abstractions.Tests.csproj", "{458A0C0A-6D65-DCF5-6B21-30D8E1374EE6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthorizationInterceptor.Extensions.DistributedCache.Tests", "tests\AuthorizationInterceptor.Extensions.DistributedCache.Tests\AuthorizationInterceptor.Extensions.DistributedCache.Tests.csproj", "{F368BB6C-9EDD-4727-58BD-68799CF990B3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthorizationInterceptor.Extensions.MemoryCache.Tests", "tests\AuthorizationInterceptor.Extensions.MemoryCache.Tests\AuthorizationInterceptor.Extensions.MemoryCache.Tests.csproj", "{72A318F6-B2F7-B014-0657-071FE035DE96}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{200E9ECE-6ABD-4AB7-AA41-31FC95E618E7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,9 +37,43 @@ Global
 		{815498BE-8A6E-4DB2-AF29-74076D73086D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{815498BE-8A6E-4DB2-AF29-74076D73086D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{815498BE-8A6E-4DB2-AF29-74076D73086D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F4BD2CE8-6ECA-A565-5E47-94993FE7CD87}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F4BD2CE8-6ECA-A565-5E47-94993FE7CD87}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F4BD2CE8-6ECA-A565-5E47-94993FE7CD87}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F4BD2CE8-6ECA-A565-5E47-94993FE7CD87}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3EA3CF7B-3EF9-641D-53A8-EB97478D49B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3EA3CF7B-3EF9-641D-53A8-EB97478D49B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3EA3CF7B-3EF9-641D-53A8-EB97478D49B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3EA3CF7B-3EF9-641D-53A8-EB97478D49B6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6AD52180-C286-5051-45C1-BC272B245B0A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6AD52180-C286-5051-45C1-BC272B245B0A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6AD52180-C286-5051-45C1-BC272B245B0A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6AD52180-C286-5051-45C1-BC272B245B0A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{458A0C0A-6D65-DCF5-6B21-30D8E1374EE6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{458A0C0A-6D65-DCF5-6B21-30D8E1374EE6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{458A0C0A-6D65-DCF5-6B21-30D8E1374EE6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{458A0C0A-6D65-DCF5-6B21-30D8E1374EE6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F368BB6C-9EDD-4727-58BD-68799CF990B3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F368BB6C-9EDD-4727-58BD-68799CF990B3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F368BB6C-9EDD-4727-58BD-68799CF990B3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F368BB6C-9EDD-4727-58BD-68799CF990B3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{72A318F6-B2F7-B014-0657-071FE035DE96}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{72A318F6-B2F7-B014-0657-071FE035DE96}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{72A318F6-B2F7-B014-0657-071FE035DE96}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{72A318F6-B2F7-B014-0657-071FE035DE96}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{1B7ED06E-1A27-4019-B1B6-FF2FA4BA35C3} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{815498BE-8A6E-4DB2-AF29-74076D73086D} = {200E9ECE-6ABD-4AB7-AA41-31FC95E618E7}
+		{F4BD2CE8-6ECA-A565-5E47-94993FE7CD87} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{3EA3CF7B-3EF9-641D-53A8-EB97478D49B6} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{6AD52180-C286-5051-45C1-BC272B245B0A} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{458A0C0A-6D65-DCF5-6B21-30D8E1374EE6} = {200E9ECE-6ABD-4AB7-AA41-31FC95E618E7}
+		{F368BB6C-9EDD-4727-58BD-68799CF990B3} = {200E9ECE-6ABD-4AB7-AA41-31FC95E618E7}
+		{72A318F6-B2F7-B014-0657-071FE035DE96} = {200E9ECE-6ABD-4AB7-AA41-31FC95E618E7}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {16C3D677-0CE4-4111-9BD9-EC1C11956A8C}
