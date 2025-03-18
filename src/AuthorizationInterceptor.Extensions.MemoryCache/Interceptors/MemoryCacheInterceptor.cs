@@ -13,7 +13,7 @@ internal class MemoryCacheInterceptor(IMemoryCache memoryCache) : IAuthorization
         cancellationToken.ThrowIfCancellationRequested();
 
         var headers = memoryCache.Get<AuthorizationHeaders?>(string.Format(CacheKey, name));
-        return new(headers);
+        return new ValueTask<AuthorizationHeaders?>(headers);
     }
 
     public ValueTask UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders, CancellationToken cancellationToken)

@@ -12,7 +12,7 @@ internal sealed class HybridCacheAuthorizationInterceptor(Microsoft.Extensions.C
     public async ValueTask<AuthorizationHeaders?> GetHeadersAsync(string name, CancellationToken cancellationToken)
     {
         var data = await hybridCache.GetOrCreateAsync(string.Format(CacheKey, name),
-            _ => ValueTask.FromResult((string?)null),
+            _ => ValueTask.FromResult<string?>(null),
             new HybridCacheEntryOptions { Flags = HybridCacheEntryFlags.DisableLocalCacheWrite | HybridCacheEntryFlags.DisableDistributedCacheWrite },
             cancellationToken: cancellationToken);
         return string.IsNullOrEmpty(data) ? null : AuthorizationHeadersJsonSerializer.Deserialize(data);

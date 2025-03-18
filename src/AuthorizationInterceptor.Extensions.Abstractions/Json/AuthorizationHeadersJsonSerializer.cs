@@ -6,7 +6,7 @@ namespace AuthorizationInterceptor.Extensions.Abstractions.Json;
 /// <summary>
 /// A Json Serializer for the <see cref="AuthorizationHeaders"/> class. Used to print or save in a format where data loss does not occur.
 /// </summary>
-public class AuthorizationHeadersJsonSerializer
+public static class AuthorizationHeadersJsonSerializer
 {
     /// <summary>
     /// Custom converter used to print or save in a format where data loss does not occur.
