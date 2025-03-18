@@ -2,9 +2,13 @@ name: Main
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
-    branches: [ feature/*, hotfix/*, release/* ]
+    branches:
+      - feature/*
+      - hotfix/*
+      - release/*
 
 jobs:
   
