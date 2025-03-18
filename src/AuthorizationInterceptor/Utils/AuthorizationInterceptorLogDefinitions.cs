@@ -1,8 +1,10 @@
 ﻿using Microsoft.Extensions.Logging;
+using System.Diagnostics.CodeAnalysis;
 
-namespace AuthorizationInterceptor.Log;
+namespace AuthorizationInterceptor.Utils;
 
-public static partial class AuthorizationInterceptorLogDifinitions
+[ExcludeFromCodeCoverage]
+public static partial class AuthorizationInterceptorLogDefinitions
 {
     [LoggerMessage(EventId = 1, Level = LogLevel.Warning, Message = "No interceptor was configured for HttpClient `{httpClientName}`. A Runtime interceptor was used instead. It is recommended to use at least the MemoryCache interceptor.")]
     public static partial void LogNoInterceptorUsed(this ILogger logger, string httpClientName);

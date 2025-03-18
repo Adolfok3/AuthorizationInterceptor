@@ -51,7 +51,7 @@ public class HttpClientBuilderExtensionsTests
         services.AddHttpClient("Test")
             .AddAuthorizationInterceptorHandler<MockAuthorizationInterceptorAuthenticationHandler>(options =>
             {
-                options.UseCustomInterceptor<MockAuthorizationInterceptor>();
+                options.UseCustomInterceptor<MockAuthorizationInterceptor>(func => func.AddSingleton<MockAuthorizationInterceptor>());
             });
 
         // Act

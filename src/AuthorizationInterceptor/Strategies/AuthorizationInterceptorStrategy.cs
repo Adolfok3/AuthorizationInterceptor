@@ -1,21 +1,15 @@
 ﻿using AuthorizationInterceptor.Extensions.Abstractions.Handlers;
 using AuthorizationInterceptor.Extensions.Abstractions.Headers;
 using AuthorizationInterceptor.Extensions.Abstractions.Interceptors;
-using AuthorizationInterceptor.Log;
+using AuthorizationInterceptor.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace AuthorizationInterceptor.Strategies;
 
-internal class AuthorizationInterceptorStrategy : IAuthorizationInterceptorStrategy
+internal class AuthorizationInterceptorStrategy(ILoggerFactory loggerFactory, IAuthorizationInterceptor[] interceptors)
+    : IAuthorizationInterceptorStrategy
 {
-    private readonly IAuthorizationInterceptor[] _interceptors;
-    private readonly ILogger _logger;
-
-    public AuthorizationInterceptorStrategy(ILoggerFactory loggerFactory, IAuthorizationInterceptor[] interceptors)
-    {
-        _logger = loggerFactory.CreateLogger("AuthorizationInterceptorStrategy");
-        _interceptors = interceptors;
-    }
+    private readonly ILogger _logger = loggerFactory.CreateLogger("AuthorizationInterceptorStrategy");
 
     public async ValueTask<AuthorizationHeaders?> GetHeadersAsync(string name, IAuthenticationHandler authenticationHandler, CancellationToken cancellationToken)
     {
@@ -24,37 +18,37 @@ internal class AuthorizationInterceptorStrategy : IAuthorizationInterceptorStrat
         AuthorizationHeaders? headers = null;
         int index;
 
-        for (index = 0; index < _interceptors.Length; index++)
+        for (index = 0; index < interceptors.Length; index++)
         {
             try
             {
-                LogDebug("Getting headers from interceptor '{interceptor}' with integration '{name}'", _interceptors[index].GetType().Name, name);
+                LogDebug("Getting headers from interceptor '{interceptor}' with integration '{name}'", interceptors[index].GetType().Name, name);
 
                 cancellationToken.ThrowIfCancellationRequested();
 
-                headers = await _interceptors[index].GetHeadersAsync(name, cancellationToken);
+                headers = await interceptors[index].GetHeadersAsync(name, cancellationToken);
                 if (headers == null)
                     continue;
 
-                LogDebug("Headers found in interceptor '{interceptor}' with integration '{name}'", _interceptors[index].GetType().Name, name);
+                LogDebug("Headers found in interceptor '{interceptor}' with integration '{name}'", interceptors[index].GetType().Name, name);
 
                 if (headers.IsHeadersValid())
                 {
-                    LogDebug("Headers still valid in interceptor '{interceptor}' with integration '{name}'", _interceptors[index].GetType().Name, name);
+                    LogDebug("Headers still valid in interceptor '{interceptor}' with integration '{name}'", interceptors[index].GetType().Name, name);
                     return await UpdateHeadersInInterceptorsAsync(name, index, headers, cancellationToken);
                 }
 
-                LogDebug("Headers is expired in interceptor '{interceptor}' with integration '{name}'", _interceptors[index].GetType().Name, name);
+                LogDebug("Headers is expired in interceptor '{interceptor}' with integration '{name}'", interceptors[index].GetType().Name, name);
                 break;
             }
             catch (OperationCanceledException)
             {
-                _logger.LogOperationCanceledInInterceptor(_interceptors[index].GetType().Name, name);
+                _logger.LogOperationCanceledInInterceptor(interceptors[index].GetType().Name, name);
                 throw;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting headers from interceptor '{interceptor}' with integration '{name}'", _interceptors[index].GetType().Name, name);
+                _logger.LogError(ex, "Error getting headers from interceptor '{interceptor}' with integration '{name}'", interceptors[index].GetType().Name, name);
             }
         }
 
@@ -74,7 +68,7 @@ internal class AuthorizationInterceptorStrategy : IAuthorizationInterceptorStrat
             return null;
         }
 
-        return await UpdateHeadersInInterceptorsAsync(name, _interceptors.Length, newHeaders, cancellationToken);
+        return await UpdateHeadersInInterceptorsAsync(name, interceptors.Length, newHeaders, cancellationToken);
     }
 
     private async ValueTask<AuthorizationHeaders?> UpdateHeadersInInterceptorsAsync(string name, int startIndex, AuthorizationHeaders? headers, CancellationToken cancellationToken)
@@ -88,20 +82,20 @@ internal class AuthorizationInterceptorStrategy : IAuthorizationInterceptorStrat
         {
             try
             {
-                LogDebug("Updating headers in interceptor '{interceptor}' with integration '{name}'", _interceptors[index].GetType().Name, name);
+                LogDebug("Updating headers in interceptor '{interceptor}' with integration '{name}'", interceptors[index].GetType().Name, name);
 
                 cancellationToken.ThrowIfCancellationRequested();
 
-                await _interceptors[index].UpdateHeadersAsync(name, null, headers, cancellationToken);
+                await interceptors[index].UpdateHeadersAsync(name, null, headers, cancellationToken);
             }
             catch (OperationCanceledException)
             {
-                _logger.LogOperationCanceledInInterceptor(_interceptors[index].GetType().Name, name);
+                _logger.LogOperationCanceledInInterceptor(interceptors[index].GetType().Name, name);
                 throw;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating headers in interceptor '{interceptor}' with integration '{name}'", _interceptors[index].GetType().Name, name);
+                _logger.LogError(ex, "Error updating headers in interceptor '{interceptor}' with integration '{name}'", interceptors[index].GetType().Name, name);
             }
         }
 
