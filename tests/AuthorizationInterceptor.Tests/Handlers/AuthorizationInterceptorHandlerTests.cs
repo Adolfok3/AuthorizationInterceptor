@@ -1,9 +1,9 @@
 ﻿using AuthorizationInterceptor.Extensions.Abstractions.Handlers;
 using AuthorizationInterceptor.Extensions.Abstractions.Headers;
 using AuthorizationInterceptor.Handlers;
-using AuthorizationInterceptor.Log;
 using AuthorizationInterceptor.Strategies;
 using AuthorizationInterceptor.Tests.Utils;
+using AuthorizationInterceptor.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace AuthorizationInterceptor.Tests.Handlers;

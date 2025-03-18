@@ -2,9 +2,9 @@ name: Main
 
 on:
   push:
-    branches: [ main, feature/*, hotfix/*, release/* ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, feature/*, hotfix/*, release/* ]
+    branches: [ feature/*, hotfix/*, release/* ]
 
 jobs:
   

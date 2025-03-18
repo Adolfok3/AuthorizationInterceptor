@@ -1,7 +1,7 @@
 ﻿using AuthorizationInterceptor.Extensions.Abstractions.Handlers;
 using AuthorizationInterceptor.Extensions.Abstractions.Headers;
-using AuthorizationInterceptor.Log;
 using AuthorizationInterceptor.Strategies;
+using AuthorizationInterceptor.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace AuthorizationInterceptor.Handlers;
