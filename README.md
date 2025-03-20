@@ -39,26 +39,29 @@ This will make the `TargetApi` HttpClient use the Authorization Interceptor hand
 The `TargetApiAuthClass` must implement the `IAuthenticationHandler` interface, so that the package can perform the necessary dependency and know where and when to generate the authorization headers. An example implementation of the class would look like this:
 
 ```csharp
-public async ValueTask<AuthorizationHeaders?> AuthenticateAsync(AuthorizationHeaders? expiredHeaders, CancellationToken cancellation)
+public class TargetApiAuthClass : IAuthenticationHandler
 {
-    HttpResponseMessage? response = null;
-
-    if (expiredHeaders == null)
+    public async ValueTask<AuthorizationHeaders?> AuthenticateAsync(AuthorizationHeaders? expiredHeaders, CancellationToken cancellation)
     {
-        // Generate the login for the first time and return the authorization headers
-        response = await _client.PostAsync("auth", null, cancellation);
-    }
-    else
-    {
-        // If a previous login was made, the expiredHeaders will be passed and you can reuse to reauthenticate. It is most commonly used for integrations with APIs that use RefreshToken.
-        // If the target API does not have the refresh token functionality, you will not need to implement this if condition e you can ignore the parameter 'expiredHeaders' performing always a new login
-        response = await _client.PostAsync($"refresh?refresh={expiredHeaders.OAuthHeaders!.RefreshToken}", null, cancellation);
-    }
+        HttpResponseMessage? response = null;
 
-    var content = await response.Content.ReadAsStringAsync(cancellation);
-    var newHeaders = JsonSerializer.Deserialize<User>(content)!;
+        if (expiredHeaders == null)
+        {
+            // Generate the login for the first time and return the authorization headers
+            response = await _client.PostAsync("auth", null, cancellation);
+        }
+        else
+        {
+            // If a previous login was made, the expiredHeaders will be passed and you can reuse to reauthenticate. It is most commonly used for integrations with APIs that use RefreshToken.
+            // If the target API does not have the refresh token functionality, you will not need to implement this if condition e you can ignore the parameter 'expiredHeaders' performing always a new login
+            response = await _client.PostAsync($"refresh?refresh={expiredHeaders.OAuthHeaders!.RefreshToken}", null, cancellation);
+        }
 
-    return new OAuthHeaders(newHeaders.AccessToken, newHeaders.TokenType, newHeaders.ExpiresIn, newHeaders.RefreshToken, newHeaders.RefreshTokenExpiresIn);
+        var content = await response.Content.ReadAsStringAsync(cancellation);
+        var newHeaders = JsonSerializer.Deserialize<User>(content)!;
+
+        return new OAuthHeaders(newHeaders.AccessToken, newHeaders.TokenType, newHeaders.ExpiresIn, newHeaders.RefreshToken, newHeaders.RefreshTokenExpiresIn);
+    }
 }
 ```
 
