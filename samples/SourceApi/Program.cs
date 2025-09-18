@@ -62,6 +62,14 @@ builder.Services.AddHttpClient("TargetApiWithCustomInterceptors")
     })
     .ConfigureHttpClient(c => c.BaseAddress = new Uri("http://localhost:5121"));
 
+builder.Services.AddHttpClient("TargetApiWithData1")
+    .AddAuthorizationInterceptorHandler(provider => ActivatorUtilities.CreateInstance<TargetApiWithDataAuthClass>(provider, new SomeData("data1")))
+    .ConfigureHttpClient(c => c.BaseAddress = new Uri("http://localhost:5121"));
+
+builder.Services.AddHttpClient("TargetApiWithData2")
+    .AddAuthorizationInterceptorHandler(provider => ActivatorUtilities.CreateInstance<TargetApiWithDataAuthClass>(provider, new SomeData("data2")))
+    .ConfigureHttpClient(c => c.BaseAddress = new Uri("http://localhost:5121"));
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -97,6 +105,18 @@ app.MapGet("/test/TargetApiWithHybridCache", async (IHttpClientFactory factory) 
 app.MapGet("/test/TargetApiWithCustomInterceptors", async (IHttpClientFactory factory) =>
 {
     var client = factory.CreateClient("TargetApiWithCustomInterceptors");
+    return await client.GetAsync("/data");
+});
+
+app.MapGet("/test/TargetApiWithData1", async (IHttpClientFactory factory) =>
+{
+    var client = factory.CreateClient("TargetApiWithData1");
+    return await client.GetAsync("/data");
+});
+
+app.MapGet("/test/TargetApiWithData2", async (IHttpClientFactory factory) =>
+{
+    var client = factory.CreateClient("TargetApiWithData2");
     return await client.GetAsync("/data");
 });
 
@@ -140,6 +160,30 @@ public class TargetApiAuthClass : IAuthenticationHandler
         return new OAuthHeaders(user.AccessToken, user.TokenType, user.ExpiresIn, user.RefreshToken, user.RefreshTokenExpiresIn);
     }
 }
+
+public class TargetApiWithDataAuthClass : IAuthenticationHandler
+{
+    private readonly SomeData _data;
+    private readonly HttpClient _client;
+
+    public TargetApiWithDataAuthClass(SomeData data, IHttpClientFactory httpClientFactory)
+    {
+        _data = data;
+        _client = httpClientFactory.CreateClient("TargetApiAuth");
+    }
+
+    public async ValueTask<AuthorizationHeaders?> AuthenticateAsync(AuthorizationHeaders? expiredHeaders, CancellationToken cancellationToken)
+    {
+        var response = expiredHeaders != null && expiredHeaders.OAuthHeaders != null
+            ? await _client.PostAsync($"refresh?refresh={expiredHeaders.OAuthHeaders?.RefreshToken}&data={_data.Data}", null)
+            : await _client.PostAsync($"auth?data={_data.Data}", null);
+
+        var content = await response.Content.ReadAsStringAsync();
+        var user = JsonSerializer.Deserialize<User>(content);
+        return new OAuthHeaders(user.AccessToken, user.TokenType, user.ExpiresIn, user.RefreshToken, user.RefreshTokenExpiresIn);
+    }
+}
+
 public class CustomInterceptor1 : IAuthorizationInterceptor
 {
     public ValueTask<AuthorizationHeaders?> GetHeadersAsync(string name, CancellationToken cancellationToken)
@@ -178,3 +222,5 @@ public class CustomInterceptor3 : IAuthorizationInterceptor
         return ValueTask.CompletedTask;
     }
 }
+
+public record SomeData(string Data);

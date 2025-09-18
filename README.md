@@ -29,12 +29,16 @@ dotnet add package AuthorizationInterceptor
 When adding a new HttpClient, call the extension method `AddAuthorizationInterceptorHandler`, passing in the authentication class for the target API:
 ```csharp
 services.AddHttpClient("TargetApi")
-        .AddAuthorizationInterceptorHandler<TargetApiAuthClass>()
+        .AddAuthorizationInterceptorHandler<TargetApiAuthClass>();
+```
+
+If you have different authentication options for the same integration within the same project, you can use the overload method by passing an implementation invoker for the authentication class, like this:
+```csharp
+services.AddHttpClient("TargetApi")
+        .AddAuthorizationInterceptorHandler((provider) => ActivatorUtilities.CreateInstance<TargetApiAuthClass>(provider, someOtherDependency));
 ```
 
 This will make the `TargetApi` HttpClient use the Authorization Interceptor handler to generate and manage authorization headers.
-
-> By default, the package will not use any interceptor to store authorization headers so the recommendation is to use at least [AuthorizationInterceptor.Extensions.MemoryCache](https://nuget.org/packages/AuthorizationInterceptor.Extensions.MemoryCache) package to store and manage the authorization headers lifecycle. Checkout [Interceptors section](#interceptors).
 
 The `TargetApiAuthClass` must implement the `IAuthenticationHandler` interface, so that the package can perform the necessary dependency and know where and when to generate the authorization headers. An example implementation of the class would look like this:
 
