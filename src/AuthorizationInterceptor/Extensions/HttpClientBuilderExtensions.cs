@@ -35,6 +35,29 @@ public static class HttpClientBuilderExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Init a new authorization interceptor handler configuration for IHttpClientBuilder
+    /// </summary>
+    /// <param name="builder"><see cref="IHttpClientBuilder"/></param>
+    /// <param name="authHandlerImpl">A delegate that provides an implementation of <see cref="IAuthenticationHandler"/> using the given <see cref="IServiceProvider"/>.</param>
+    /// <param name="options">Configuration options of Authorization interceptor.</param>
+    /// <returns>Returns <see cref="IHttpClientBuilder"/></returns>
+    public static IHttpClientBuilder AddAuthorizationInterceptorHandler(this IHttpClientBuilder builder, Func<IServiceProvider, IAuthenticationHandler> authHandlerImpl, Action<AuthorizationInterceptorOptions>? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(authHandlerImpl);
+
+        var optionsInstance = RequireOptions(options);
+        builder.AddHttpMessageHandler(provider => new AuthorizationInterceptorHandler(
+            builder.Name,
+            optionsInstance.UnauthenticatedPredicate,
+            authHandlerImpl.Invoke(provider),
+            CreateStrategy(provider, builder, optionsInstance.Interceptors),
+            provider.GetRequiredService<ILoggerFactory>()
+        ));
+
+        return builder;
+    }
+
     private static AuthorizationInterceptorOptions RequireOptions(Action<AuthorizationInterceptorOptions>? options)
     {
         var optionsInstance = new AuthorizationInterceptorOptions();
