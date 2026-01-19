@@ -11,7 +11,7 @@ using System.Text.Json.Serialization;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddOpenApiDocument();
 
 // Add the cache options
 builder.Services.AddMemoryCache();
@@ -71,12 +71,8 @@ builder.Services.AddHttpClient("TargetApiWithData2")
     .ConfigureHttpClient(c => c.BaseAddress = new Uri("http://localhost:5121"));
 
 var app = builder.Build();
-
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseOpenApi();
+app.UseSwaggerUi();
 
 app.MapGet("/test/TargetApiWithNoInterceptor", async (IHttpClientFactory factory) =>
 {

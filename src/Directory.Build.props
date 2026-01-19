@@ -1,10 +1,10 @@
 <Project>
   <PropertyGroup>
-	<LangVersion>13</LangVersion>
+	<LangVersion>14</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
 	<Nullable>enable</Nullable>
-	<Version>5.2.0</Version>
-	<TargetFrameworks>net6.0;net7.0;net8.0;net9.0</TargetFrameworks>
+	<Version>5.3.0</Version>
+	<TargetFrameworks>net6.0;net7.0;net8.0;net9.0;net10.0</TargetFrameworks>
 	<Title>Authorization Interceptor</Title>
 	<Authors>Adolfok3</Authors>
 	<Copyright>MIT</Copyright>
@@ -39,6 +39,10 @@
   
   <ItemGroup Condition="'$(IsMainPackage)' != 'true'">
     <None Include="./README.md" Pack="true" Visible="false" PackagePath="" />
+  </ItemGroup>
+  
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0' And '$(IsCachingAbstractionsTargeted)' == 'true'">
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="10.0.0" />
   </ItemGroup>
   
   <ItemGroup Condition="'$(TargetFramework)' == 'net9.0' And '$(IsCachingAbstractionsTargeted)' == 'true'">
