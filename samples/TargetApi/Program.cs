@@ -1,20 +1,15 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddOpenApiDocument();
 builder.Services.AddSingleton(new UserContainer());
 
 var app = builder.Build();
-
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseOpenApi();
+app.UseSwaggerUi();
 
 app.MapPost("/auth", (UserContainer users, ILoggerFactory loggerFactory) =>
 {
@@ -33,8 +28,7 @@ app.MapPost("/auth", (UserContainer users, ILoggerFactory loggerFactory) =>
     users.Users.Add(user);
     return user;
 })
-.WithName("auth")
-.WithOpenApi();
+.WithName("auth");
 
 app.MapPost("/refresh", (UserContainer users, [FromQuery] string refresh, ILoggerFactory loggerFactory) =>
 {
@@ -61,8 +55,7 @@ app.MapPost("/refresh", (UserContainer users, [FromQuery] string refresh, ILogge
     users.Users.Add(user);
     return Results.Ok(user);
 })
-.WithName("refresh")
-.WithOpenApi();
+.WithName("refresh");
 
 app.MapGet("/data", (HttpRequest request, UserContainer users, ILoggerFactory loggerFactory, [FromHeader(Name = "Authorization")] string? token = null) =>
 {
@@ -78,8 +71,7 @@ app.MapGet("/data", (HttpRequest request, UserContainer users, ILoggerFactory lo
 
     return Results.Ok();
 })
-.WithName("data")
-.WithOpenApi();
+.WithName("data");
 
 
 app.Run();
