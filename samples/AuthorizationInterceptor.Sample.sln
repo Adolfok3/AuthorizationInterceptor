@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthorizationInterceptor.Ex
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthorizationInterceptor.Extensions.HybridCache", "..\src\AuthorizationInterceptor.Extensions.HybridCache\AuthorizationInterceptor.Extensions.HybridCache.csproj", "{B6B934AB-B383-0E92-B44A-22EC3C0F3B20}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthorizationInterceptor.Extensions.Abstractions", "..\src\AuthorizationInterceptor.Extensions.Abstractions\AuthorizationInterceptor.Extensions.Abstractions.csproj", "{A3683748-30A4-44D3-F25B-B6B81631267B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +47,10 @@ Global
 		{B6B934AB-B383-0E92-B44A-22EC3C0F3B20}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B6B934AB-B383-0E92-B44A-22EC3C0F3B20}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B6B934AB-B383-0E92-B44A-22EC3C0F3B20}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A3683748-30A4-44D3-F25B-B6B81631267B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A3683748-30A4-44D3-F25B-B6B81631267B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A3683748-30A4-44D3-F25B-B6B81631267B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A3683748-30A4-44D3-F25B-B6B81631267B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
