@@ -80,7 +80,7 @@ public class AuthorizationInterceptorHandlerTests
     }
 
     [Fact]
-    public async Task SendAsync_WithHeaders_ShouldReturnsAnauthorized()
+    public async Task SendAsync_WithHeaders_ShouldReturnsUnauthorized()
     {
         //Arrange
         _strategy.GetHeadersAsync("test", _authenticationHandler, Arg.Any<CancellationToken>()).Returns(new AuthorizationHeaders(TimeSpan.FromMinutes(3))

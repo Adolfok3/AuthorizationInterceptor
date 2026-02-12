@@ -13,7 +13,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApiDocument();
 
-// Add the cache options
 builder.Services.AddMemoryCache();
 builder.Services.AddStackExchangeRedisCache(opt =>
 {

@@ -69,7 +69,7 @@ app.MapGet("/data", (HttpRequest request, UserContainer users, ILoggerFactory lo
     if (!users.Users.Any(a => a.AccessToken == token && DateTimeOffset.UtcNow < a.ExpiresAt))
         return Results.Unauthorized();
 
-    return Results.Ok();
+    return Results.Unauthorized();
 })
 .WithName("data");
 
