@@ -30,7 +30,7 @@ public class HybridCacheAuthorizationInterceptorTests
             .Returns(ValueTask.FromResult(cache));
 
         //Act
-        var result = await _sut.GetHeadersAsync("test", CancellationToken.None);
+        var result = await _sut.GetHeadersAsync("test", CancellationToken.None, null);
 
         //Assert
         result.Should().NotBeNull();
@@ -50,7 +50,7 @@ public class HybridCacheAuthorizationInterceptorTests
             .Returns(ValueTask.FromResult(cache));
 
         //Act
-        headers = await _sut.GetHeadersAsync("test", CancellationToken.None);
+        headers = await _sut.GetHeadersAsync("test", CancellationToken.None, null);
 
         //Assert
         headers.Should().NotBeNull();
@@ -66,7 +66,7 @@ public class HybridCacheAuthorizationInterceptorTests
     public async Task GetHeadersAsync_ShouldGetFromCache_AndReturnNull()
     {
         //Act
-        var headers = await _sut.GetHeadersAsync("test", CancellationToken.None);
+        var headers = await _sut.GetHeadersAsync("test", CancellationToken.None, null);
 
         //Assert
         headers.Should().BeNull();
@@ -83,7 +83,7 @@ public class HybridCacheAuthorizationInterceptorTests
         };
 
         //Act
-        var act = async () => await _sut.UpdateHeadersAsync("test", null, headers, CancellationToken.None);
+        var act = async () => await _sut.UpdateHeadersAsync("test", null, headers, CancellationToken.None, null);
 
         //Assert
         await act.Should().NotThrowAsync();
@@ -94,7 +94,91 @@ public class HybridCacheAuthorizationInterceptorTests
     public async Task UpdateHeadersAsync_WithNullHeaders_ShouldNotUpdate()
     {
         //Act
-        var act = async () => await _sut.UpdateHeadersAsync("test", null, null, CancellationToken.None);
+        var act = async () => await _sut.UpdateHeadersAsync("test", null, null, CancellationToken.None, null);
+
+        //Assert
+        await act.Should().NotThrowAsync();
+        await _hybridCache.Received(0).SetAsync(Key, Arg.Any<string>(), Arg.Any<HybridCacheEntryOptions>(), null, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task GetHeadersAsync_WithCacheKeySuffix_ShouldGetFromCache()
+    {
+        //Arrange
+        var headers = new AuthorizationHeaders(TimeSpan.FromMinutes(3))
+        {
+            { "Authorization", "Bearer token" }
+        };
+        var cache = AuthorizationHeadersJsonSerializer.Serialize(headers);
+        _hybridCache.GetOrCreateAsync($"{Key}_some-suffix", Arg.Any<Func<CancellationToken, ValueTask<string?>>>(), Arg.Any<HybridCacheEntryOptions>(), Arg.Any<IEnumerable<string>>(), Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromResult(cache));
+
+        //Act
+        var result = await _sut.GetHeadersAsync("test", CancellationToken.None, "some-suffix");
+
+        //Assert
+        result.Should().NotBeNull();
+        result!.AuthenticatedAt.Should().NotBe(DateTimeOffset.MinValue);
+        result.ExpiresIn.Should().Be(TimeSpan.FromMinutes(3));
+        result.Should().Contain(a => a.Key == "Authorization" && a.Value == "Bearer token");
+        await _hybridCache.Received(1).GetOrCreateAsync($"{Key}_some-suffix", Arg.Any<Func<CancellationToken, ValueTask<string?>>>(), Arg.Any<HybridCacheEntryOptions>(), Arg.Any<IEnumerable<string>>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task GetHeadersAsync_WithCacheKeySuffix_WithOAuth_ShouldGetFromCache()
+    {
+        //Arrange
+        AuthorizationHeaders? headers = new OAuthHeaders("token", "type", 123, "refresh", 12345);
+        var cache = AuthorizationHeadersJsonSerializer.Serialize(headers);
+        _hybridCache.GetOrCreateAsync($"{Key}_some-suffix", Arg.Any<Func<CancellationToken, ValueTask<string?>>>(), Arg.Any<HybridCacheEntryOptions>(), Arg.Any<IEnumerable<string>>(), Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromResult(cache));
+
+        //Act
+        headers = await _sut.GetHeadersAsync("test", CancellationToken.None, "some-suffix");
+
+        //Assert
+        headers.Should().NotBeNull();
+        headers.Should().NotBeEmpty();
+        headers!.AuthenticatedAt.Should().NotBe(DateTimeOffset.MinValue);
+        headers.ExpiresIn.Should().Be(TimeSpan.FromSeconds(12345));
+        headers.Should().Contain(a => a.Key == "Authorization" && a.Value == "type token");
+        headers.OAuthHeaders.Should().NotBeNull();
+        await _hybridCache.Received(1).GetOrCreateAsync($"{Key}_some-suffix", Arg.Any<Func<CancellationToken, ValueTask<string?>>>(), Arg.Any<HybridCacheEntryOptions>(), Arg.Any<IEnumerable<string>>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task GetHeadersAsync_WithCacheKeySuffix_ShouldGetFromCache_AndReturnNull()
+    {
+        //Act
+        var headers = await _sut.GetHeadersAsync("test", CancellationToken.None, "some-suffix");
+
+        //Assert
+        headers.Should().BeNull();
+        await _hybridCache.Received(1).GetOrCreateAsync($"{Key}_some-suffix", Arg.Any<Func<CancellationToken, ValueTask<string?>>>(), Arg.Any<HybridCacheEntryOptions>(), Arg.Any<IEnumerable<string>>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task UpdateHeadersAsync_WithCacheKeySuffix_ShouldUpdateSuccessfully()
+    {
+        //Arrange
+        var headers = new AuthorizationHeaders(TimeSpan.FromMinutes(3))
+        {
+            { "Authorization", "Bearer token" }
+        };
+
+        //Act
+        var act = async () => await _sut.UpdateHeadersAsync("test", null, headers, CancellationToken.None, "some-suffix");
+
+        //Assert
+        await act.Should().NotThrowAsync();
+        await _hybridCache.Received(1).SetAsync($"{Key}_some-suffix", Arg.Any<string>(), Arg.Any<HybridCacheEntryOptions>(), null, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task UpdateHeadersAsync_WithNullHeaders_WithCacheKeySuffix_ShouldNotUpdate()
+    {
+        //Act
+        var act = async () => await _sut.UpdateHeadersAsync("test", null, null, CancellationToken.None, "some-suffix");
 
         //Assert
         await act.Should().NotThrowAsync();

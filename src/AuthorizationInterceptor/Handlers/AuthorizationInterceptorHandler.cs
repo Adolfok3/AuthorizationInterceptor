@@ -2,6 +2,8 @@
 using AuthorizationInterceptor.Extensions.Abstractions.Headers;
 using AuthorizationInterceptor.Strategies;
 using AuthorizationInterceptor.Utils;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace AuthorizationInterceptor.Handlers;
@@ -13,14 +15,18 @@ internal class AuthorizationInterceptorHandler : DelegatingHandler
     private readonly IAuthenticationHandler _authenticationHandler;
     private readonly IAuthorizationInterceptorStrategy _strategy;
     private readonly ILogger _logger;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly Func<IHttpContextAccessor, string?>? _cacheKeyBuilder;
 
-    public AuthorizationInterceptorHandler(string name, Func<HttpResponseMessage, bool> unauthenticatedPredicate, IAuthenticationHandler authenticationHandler, IAuthorizationInterceptorStrategy strategy, ILoggerFactory loggerFactory)
+    public AuthorizationInterceptorHandler(string name, Func<HttpResponseMessage, bool> unauthenticatedPredicate, IAuthenticationHandler authenticationHandler, IAuthorizationInterceptorStrategy strategy, ILoggerFactory loggerFactory, IServiceScopeFactory serviceScopeFactory, Func<IHttpContextAccessor, string?>? cacheKeyBuilder = null)
     {
         _name = name;
         _strategy = strategy;
         _authenticationHandler = authenticationHandler;
         _unauthenticatedPredicate = unauthenticatedPredicate;
         _logger = loggerFactory.CreateLogger("AuthorizationInterceptorHandler");
+        _serviceScopeFactory = serviceScopeFactory;
+        _cacheKeyBuilder = cacheKeyBuilder;
     }
 
     protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -34,47 +40,54 @@ internal class AuthorizationInterceptorHandler : DelegatingHandler
 
     private async Task<HttpResponseMessage> SendWithInterceptorAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        var headers = await _strategy.GetHeadersAsync(_name, _authenticationHandler, cancellationToken);
+        var cacheKeySuffix = GetCacheKeySuffix();
+
+        var headers = await _strategy.GetHeadersAsync(_name, _authenticationHandler, cacheKeySuffix, cancellationToken);
         if (headers == null || !headers.Any())
         {
-            LogDebug("No headers added to request with integration '{name}'", _name);
+            _logger.LogNoHeadersAddedToRequest(_name, cacheKeySuffix);
             return await base.SendAsync(request, cancellationToken);
         }
 
-        request = AddHeaders(request, headers);
+        request = AddHeaders(request, headers, cacheKeySuffix);
 
         var response = await base.SendAsync(request, cancellationToken);
         if (!_unauthenticatedPredicate(response))
             return response;
 
-        LogDebug("Caught unauthenticated predicate from response with integration '{name}'", _name);
-        headers = await _strategy.UpdateHeadersAsync(_name, headers, _authenticationHandler, cancellationToken);
+        _logger.CaughtUnauthenticatedPredicateFromResponse(_name, cacheKeySuffix);
+
+        headers = await _strategy.UpdateHeadersAsync(_name, headers, _authenticationHandler, cacheKeySuffix, cancellationToken);
         if (headers == null || !headers.Any())
         {
-            LogDebug("No headers added to request with integration '{name}'", _name);
+            _logger.LogNoHeadersAddedToRequest(_name, cacheKeySuffix);
             return response;
         }
 
-        request = AddHeaders(request, headers);
+        request = AddHeaders(request, headers, cacheKeySuffix);
 
         return await base.SendAsync(request, cancellationToken);
     }
 
-    private HttpRequestMessage AddHeaders(HttpRequestMessage request, AuthorizationHeaders headers)
+    private string? GetCacheKeySuffix()
+    {
+        if (_cacheKeyBuilder is null)
+            return null;
+
+        using var scope = _serviceScopeFactory.CreateScope();
+        var httpContextAccessor = scope.ServiceProvider.GetRequiredService<IHttpContextAccessor>();
+        return _cacheKeyBuilder.Invoke(httpContextAccessor);
+    }
+
+    private HttpRequestMessage AddHeaders(HttpRequestMessage request, AuthorizationHeaders headers, string? cacheKeySuffix)
     {
         foreach (var header in headers)
         {
-            LogDebug("Adding header '{header}' to request with integration '{name}'", header.Key, _name);
+            _logger.LogAddingHeader(header.Key, _name, cacheKeySuffix);
             request.Headers.Remove(header.Key);
             request.Headers.TryAddWithoutValidation(header.Key, header.Value);
         }
 
         return request;
-    }
-
-    private void LogDebug(string message, params object[] objs)
-    {
-        if (_logger.IsEnabled(LogLevel.Debug))
-            _logger.LogDebug(message, objs);
     }
 }

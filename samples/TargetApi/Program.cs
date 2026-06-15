@@ -11,12 +11,14 @@ var app = builder.Build();
 app.UseOpenApi();
 app.UseSwaggerUi();
 
-app.MapPost("/auth", (UserContainer users, ILoggerFactory loggerFactory) =>
+app.MapPost("/auth", ([FromHeader(Name = "x-mycustom-header")]string? myCustomHeader, UserContainer users, ILoggerFactory loggerFactory, HttpContext httpContext) =>
 {
+    var test = httpContext.Request.Headers;
     var logger = loggerFactory.CreateLogger("TargetApi");
     logger.LogDebug("Received request on /auth endpoint");
     var user = new User
     {
+        Name = myCustomHeader ?? "Unknown User",
         AccessToken = Guid.NewGuid().ToString(),
         RefreshToken = Guid.NewGuid().ToString(),
         TokenType = "Bearer",
@@ -30,7 +32,7 @@ app.MapPost("/auth", (UserContainer users, ILoggerFactory loggerFactory) =>
 })
 .WithName("auth");
 
-app.MapPost("/refresh", (UserContainer users, [FromQuery] string refresh, ILoggerFactory loggerFactory) =>
+app.MapPost("/refresh", ([FromHeader(Name = "x-mycustom-header")]string? myCustomHeader, UserContainer users, [FromQuery] string refresh, ILoggerFactory loggerFactory) =>
 {
     var logger = loggerFactory.CreateLogger("TargetApi");
     logger.LogDebug("Received request on /refresh endpoint");
@@ -44,6 +46,7 @@ app.MapPost("/refresh", (UserContainer users, [FromQuery] string refresh, ILogge
 
     user = new User
     {
+        Name = myCustomHeader ?? "Unknown User",
         AccessToken = Guid.NewGuid().ToString(),
         RefreshToken = Guid.NewGuid().ToString(),
         TokenType = "Bearer",
@@ -66,10 +69,11 @@ app.MapGet("/data", (HttpRequest request, UserContainer users, ILoggerFactory lo
         return Results.Unauthorized();
 
     token = token.Replace("Bearer ", string.Empty);
-    if (!users.Users.Any(a => a.AccessToken == token && DateTimeOffset.UtcNow < a.ExpiresAt))
+    var user = users.Users.FirstOrDefault(a => a.AccessToken == token && DateTimeOffset.UtcNow < a.ExpiresAt);
+    if (user is null)
         return Results.Unauthorized();
 
-    return Results.Ok();
+    return TypedResults.Ok(user);
 })
 .WithName("data");
 
@@ -78,6 +82,9 @@ app.Run();
 
 public class User
 {
+    [JsonPropertyName("name")]
+    public string Name { get; set; }
+
     [JsonPropertyName("access_token")]
     public string AccessToken { get; set; }
 
