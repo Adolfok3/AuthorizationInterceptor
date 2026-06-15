@@ -8,8 +8,7 @@ A lightweight .NET library that automatically manages HTTP authentication header
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 [![Codecov](https://codecov.io/github/Adolfok3/AuthorizationInterceptor/graph/badge.svg?token=PHBV20RCQK)](https://codecov.io/github/Adolfok3/AuthorizationInterceptor)
 [![NuGet Version](https://img.shields.io/nuget/vpre/AuthorizationInterceptor)](https://www.nuget.org/packages/AuthorizationInterceptor)
-
-**.NET 6 — .NET 10**
+[![.NET Support](https://img.shields.io/badge/.NET-8%2C9%2C10-blue)](https://dotnet.microsoft.com/download)
 
 ## Features
 
@@ -19,7 +18,7 @@ A lightweight .NET library that automatically manages HTTP authentication header
 - **Multiple cache backends** — in-memory, distributed (Redis/NCache), or hybrid caching
 - **Distributed concurrency-safe** — safe for multi-instance/Kubernetes deployments
 - **Extensible interceptor chain** — compose your own caching and logging strategies
-- **Multi-target framework support** — .NET 6 through .NET 10
+- **Multi-target framework support** — .NET 8+
 
 ## Quick Start
 
@@ -54,6 +53,7 @@ public class TargetApiAuth : IAuthenticationHandler
         else
         {
             // Token expired — refresh it using the existing refresh token
+            // This step is only applicable to APIs integrating with OAuth refresh tokens
             var refreshToken = expiredHeaders.OAuthHeaders!.RefreshToken;
             var response = await _client.PostAsync($"refresh?refresh={refreshToken}", content: null, ct);
         }
@@ -85,15 +85,15 @@ That's it. Calls to this HttpClient will automatically retry with fresh authoriz
 
 ## Caching & Interceptors
 
-By default, authorization headers are cached in memory for their expiration window. For production deployments, use one of the cache interceptors below.
+By default, without any cache interceptor, a new access token is generated on every expiration. For production deployments, use one of the cache interceptors below to avoid redundant authentication calls.
 
 ### Available Packages
 
-| Package | Use case |
-|---|---|
-| [AuthorizationInterceptor.Extensions.MemoryCache](https://www.nuget.org/packages/AuthorizationInterceptor.Extensions.MemoryCache) | Local in-memory caching — good for single-instance apps |
+| Package                                                                                                                                     | Use case                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| [AuthorizationInterceptor.Extensions.MemoryCache](https://www.nuget.org/packages/AuthorizationInterceptor.Extensions.MemoryCache)           | Local in-memory caching — good for single-instance apps                    |
 | [AuthorizationInterceptor.Extensions.DistributedCache](https://www.nuget.org/packages/AuthorizationInterceptor.Extensions.DistributedCache) | Distributed caching (Redis, NCache, etc.) — for multi-instance deployments |
-| [AuthorizationInterceptor.Extensions.HybridCache](https://www.nuget.org/packages/AuthorizationInterceptor.Extensions.HybridCache) | Memory + distributed cache combined — recommended for production |
+| [AuthorizationInterceptor.Extensions.HybridCache](https://www.nuget.org/packages/AuthorizationInterceptor.Extensions.HybridCache)           | Memory + distributed cache combined — recommended for production           |
 
 ### Recommended configuration: Hybrid Cache
 

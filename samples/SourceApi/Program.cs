@@ -5,6 +5,7 @@ using AuthorizationInterceptor.Extensions.Abstractions.Interceptors;
 using AuthorizationInterceptor.Extensions.DistributedCache.Extensions;
 using AuthorizationInterceptor.Extensions.HybridCache.Extensions;
 using AuthorizationInterceptor.Extensions.MemoryCache.Extensions;
+using Microsoft.Extensions.Options;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -21,33 +22,40 @@ builder.Services.AddStackExchangeRedisCache(opt =>
 });
 builder.Services.AddHybridCache();
 
+builder.Services.AddHeaderPropagation(options => options.Headers.Add("x-mycustom-header"));
+
 builder.Services.AddHttpClient("TargetApiAuth")
-    .ConfigureHttpClient(c => c.BaseAddress = new Uri("http://localhost:5121"));
+    .ConfigureHttpClient(c => c.BaseAddress = new Uri("http://localhost:5121"))
+    .AddHeaderPropagation(configure => configure.Headers.Add("x-mycustom-header"));
 
 builder.Services.AddHttpClient("TargetApiWithNoInterceptor")
     .AddAuthorizationInterceptorHandler<TargetApiAuthClass>()
-    .ConfigureHttpClient(c => c.BaseAddress = new Uri("http://localhost:5121"));
+    .ConfigureHttpClient(c => c.BaseAddress = new Uri("http://localhost:5121"))
+    .AddHeaderPropagation(configure => configure.Headers.Add("x-mycustom-header"));
 
 builder.Services.AddHttpClient("TargetApiWithMemoryCache")
     .AddAuthorizationInterceptorHandler<TargetApiAuthClass>(opt =>
     {
         opt.UseMemoryCacheInterceptor();
     })
-    .ConfigureHttpClient(c => c.BaseAddress = new Uri("http://localhost:5121"));
+    .ConfigureHttpClient(c => c.BaseAddress = new Uri("http://localhost:5121"))
+    .AddHeaderPropagation(configure => configure.Headers.Add("x-mycustom-header"));
 
 builder.Services.AddHttpClient("TargetApiWithDistributedCache")
     .AddAuthorizationInterceptorHandler<TargetApiAuthClass>(opt =>
     {
         opt.UseDistributedCacheInterceptor();
     })
-    .ConfigureHttpClient(c => c.BaseAddress = new Uri("http://localhost:5121"));
+    .ConfigureHttpClient(c => c.BaseAddress = new Uri("http://localhost:5121"))
+    .AddHeaderPropagation(configure => configure.Headers.Add("x-mycustom-header"));
 
 builder.Services.AddHttpClient("TargetApiWithHybridCache")
     .AddAuthorizationInterceptorHandler<TargetApiAuthClass>(opt =>
     {
         opt.UseHybridCacheInterceptor();
     })
-    .ConfigureHttpClient(c => c.BaseAddress = new Uri("http://localhost:5121"));
+    .ConfigureHttpClient(c => c.BaseAddress = new Uri("http://localhost:5121"))
+    .AddHeaderPropagation(configure => configure.Headers.Add("x-mycustom-header"));
 
 builder.Services.AddHttpClient("TargetApiWithCustomInterceptors")
     .AddAuthorizationInterceptorHandler<TargetApiAuthClass>(opt =>
@@ -59,66 +67,120 @@ builder.Services.AddHttpClient("TargetApiWithCustomInterceptors")
         opt.UseCustomInterceptor<CustomInterceptor2>();
         opt.UseCustomInterceptor<CustomInterceptor3>();
     })
-    .ConfigureHttpClient(c => c.BaseAddress = new Uri("http://localhost:5121"));
+    .ConfigureHttpClient(c => c.BaseAddress = new Uri("http://localhost:5121"))
+    .AddHeaderPropagation(configure => configure.Headers.Add("x-mycustom-header"));
+
+builder.Services.AddHttpClient("TargetApiWithCacheKeyBuilder")
+    .AddAuthorizationInterceptorHandler<TargetApiAuthClass>(opt =>
+    {
+        opt.UseMemoryCacheInterceptor();
+        opt.CacheKeyBuilder = (context) => $"{context.HttpContext!.Request.Headers["x-mycustom-header"]}";
+    })
+    .ConfigureHttpClient(c => c.BaseAddress = new Uri("http://localhost:5121"))
+    .AddHeaderPropagation(configure => configure.Headers.Add("x-mycustom-header"));
 
 builder.Services.AddHttpClient("TargetApiWithData1")
     .AddAuthorizationInterceptorHandler(provider => ActivatorUtilities.CreateInstance<TargetApiWithDataAuthClass>(provider, new SomeData("data1")))
-    .ConfigureHttpClient(c => c.BaseAddress = new Uri("http://localhost:5121"));
+    .ConfigureHttpClient(c => c.BaseAddress = new Uri("http://localhost:5121"))
+    .AddHeaderPropagation(configure => configure.Headers.Add("x-mycustom-header"));
 
 builder.Services.AddHttpClient("TargetApiWithData2")
     .AddAuthorizationInterceptorHandler(provider => ActivatorUtilities.CreateInstance<TargetApiWithDataAuthClass>(provider, new SomeData("data2")))
-    .ConfigureHttpClient(c => c.BaseAddress = new Uri("http://localhost:5121"));
+    .ConfigureHttpClient(c => c.BaseAddress = new Uri("http://localhost:5121"))
+    .AddHeaderPropagation(configure => configure.Headers.Add("x-mycustom-header"));
 
 var app = builder.Build();
 app.UseOpenApi();
 app.UseSwaggerUi();
+app.UseHeaderPropagation();
 
 app.MapGet("/test/TargetApiWithNoInterceptor", async (IHttpClientFactory factory) =>
 {
     var client = factory.CreateClient("TargetApiWithNoInterceptor");
-    return await client.GetAsync("/data");
+    var response = await client.GetAsync("/data");
+    if (!response.IsSuccessStatusCode)
+        return Results.StatusCode((int)response.StatusCode);
+
+    return Results.Ok(await response.Content.ReadFromJsonAsync<User>());
 });
 
 app.MapGet("/test/TargetApiWithMemoryCache", async (IHttpClientFactory factory) =>
 {
     var client = factory.CreateClient("TargetApiWithMemoryCache");
-    return await client.GetAsync("/data");
+    var response = await client.GetAsync("/data");
+    if (!response.IsSuccessStatusCode)
+        return Results.StatusCode((int)response.StatusCode);
+
+    return Results.Ok(await response.Content.ReadFromJsonAsync<User>());
 });
 
 app.MapGet("/test/TargetApiWithDistributedCache", async (IHttpClientFactory factory) =>
 {
     var client = factory.CreateClient("TargetApiWithDistributedCache");
-    return await client.GetAsync("/data");
+    var response = await client.GetAsync("/data");
+    if (!response.IsSuccessStatusCode)
+        return Results.StatusCode((int)response.StatusCode);
+
+    return Results.Ok(await response.Content.ReadFromJsonAsync<User>());
 });
 
 app.MapGet("/test/TargetApiWithHybridCache", async (IHttpClientFactory factory) =>
 {
     var client = factory.CreateClient("TargetApiWithHybridCache");
-    return await client.GetAsync("/data");
+    var response = await client.GetAsync("/data");
+    if (!response.IsSuccessStatusCode)
+        return Results.StatusCode((int)response.StatusCode);
+
+    return Results.Ok(await response.Content.ReadFromJsonAsync<User>());
 });
 
 app.MapGet("/test/TargetApiWithCustomInterceptors", async (IHttpClientFactory factory) =>
 {
     var client = factory.CreateClient("TargetApiWithCustomInterceptors");
-    return await client.GetAsync("/data");
+    var response = await client.GetAsync("/data");
+    if (!response.IsSuccessStatusCode)
+        return Results.StatusCode((int)response.StatusCode);
+
+    return Results.Ok(await response.Content.ReadFromJsonAsync<User>());
 });
 
 app.MapGet("/test/TargetApiWithData1", async (IHttpClientFactory factory) =>
 {
     var client = factory.CreateClient("TargetApiWithData1");
-    return await client.GetAsync("/data");
+    var response = await client.GetAsync("/data");
+    if (!response.IsSuccessStatusCode)
+        return Results.StatusCode((int)response.StatusCode);
+
+    return Results.Ok(await response.Content.ReadFromJsonAsync<User>());
 });
 
 app.MapGet("/test/TargetApiWithData2", async (IHttpClientFactory factory) =>
 {
     var client = factory.CreateClient("TargetApiWithData2");
-    return await client.GetAsync("/data");
+    var response = await client.GetAsync("/data");
+    if (!response.IsSuccessStatusCode)
+        return Results.StatusCode((int)response.StatusCode);
+
+    return Results.Ok(await response.Content.ReadFromJsonAsync<User>());
+});
+
+app.MapGet("/test/TargetApiWithCacheKeyBuilder", async (IHttpClientFactory factory) =>
+{
+    var client = factory.CreateClient("TargetApiWithCacheKeyBuilder");
+    var response = await client.GetAsync("/data");
+    if (!response.IsSuccessStatusCode)
+        return Results.StatusCode((int)response.StatusCode);
+
+    return Results.Ok(await response.Content.ReadFromJsonAsync<User>());
 });
 
 app.Run();
 
 public class User
 {
+    [JsonPropertyName("name")]
+    public string Name { get; set; }
+
     [JsonPropertyName("access_token")]
     public string AccessToken { get; set; }
 
@@ -181,12 +243,12 @@ public class TargetApiWithDataAuthClass : IAuthenticationHandler
 
 public class CustomInterceptor1 : IAuthorizationInterceptor
 {
-    public ValueTask<AuthorizationHeaders?> GetHeadersAsync(string name, CancellationToken cancellationToken)
+    public ValueTask<AuthorizationHeaders?> GetHeadersAsync(string name, CancellationToken cancellationToken, string? cacheKeySuffix = null)
     {
         return ValueTask.FromResult<AuthorizationHeaders?>(null);
     }
 
-    public ValueTask UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders, CancellationToken cancellationToken)
+    public ValueTask UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders, CancellationToken cancellationToken, string? cacheKeySuffix = null)
     {
         return ValueTask.CompletedTask;
     }
@@ -194,12 +256,12 @@ public class CustomInterceptor1 : IAuthorizationInterceptor
 
 public class CustomInterceptor2 : IAuthorizationInterceptor
 {
-    public ValueTask<AuthorizationHeaders?> GetHeadersAsync(string name, CancellationToken cancellationToken)
+    public ValueTask<AuthorizationHeaders?> GetHeadersAsync(string name, CancellationToken cancellationToken, string? cacheKeySuffix = null)
     {
         return ValueTask.FromResult<AuthorizationHeaders?>(null);
     }
 
-    public ValueTask UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders, CancellationToken cancellationToken)
+    public ValueTask UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders, CancellationToken cancellationToken, string? cacheKeySuffix = null)
     {
         return ValueTask.CompletedTask;
     }
@@ -207,12 +269,12 @@ public class CustomInterceptor2 : IAuthorizationInterceptor
 
 public class CustomInterceptor3 : IAuthorizationInterceptor
 {
-    public ValueTask<AuthorizationHeaders?> GetHeadersAsync(string name, CancellationToken cancellationToken)
+    public ValueTask<AuthorizationHeaders?> GetHeadersAsync(string name, CancellationToken cancellationToken, string? cacheKeySuffix = null)
     {
         return ValueTask.FromResult<AuthorizationHeaders?>(null);
     }
 
-    public ValueTask UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders, CancellationToken cancellationToken)
+    public ValueTask UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders, CancellationToken cancellationToken, string? cacheKeySuffix = null)
     {
         return ValueTask.CompletedTask;
     }

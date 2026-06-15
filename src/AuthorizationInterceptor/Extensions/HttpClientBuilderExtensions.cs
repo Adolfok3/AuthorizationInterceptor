@@ -23,13 +23,17 @@ public static class HttpClientBuilderExtensions
     public static IHttpClientBuilder AddAuthorizationInterceptorHandler<T>(this IHttpClientBuilder builder, Action<AuthorizationInterceptorOptions>? options = null)
         where T : class, IAuthenticationHandler
     {
+        builder.Services.AddHttpContextAccessor();
+
         var optionsInstance = RequireOptions(options);
         builder.AddHttpMessageHandler(provider => new AuthorizationInterceptorHandler(
             builder.Name,
             optionsInstance.UnauthenticatedPredicate,
             CreateAuthenticationHandler<T>(provider),
             CreateStrategy(provider, builder, optionsInstance.Interceptors),
-            provider.GetRequiredService<ILoggerFactory>()
+            provider.GetRequiredService<ILoggerFactory>(),
+            provider.GetRequiredService<IServiceScopeFactory>(),
+            optionsInstance.CacheKeyBuilder
         ));
 
         return builder;
@@ -52,7 +56,9 @@ public static class HttpClientBuilderExtensions
             optionsInstance.UnauthenticatedPredicate,
             authHandlerImpl.Invoke(provider),
             CreateStrategy(provider, builder, optionsInstance.Interceptors),
-            provider.GetRequiredService<ILoggerFactory>()
+            provider.GetRequiredService<ILoggerFactory>(),
+            provider.GetRequiredService<IServiceScopeFactory>(),
+            optionsInstance.CacheKeyBuilder
         ));
 
         return builder;
