@@ -60,6 +60,26 @@ public class AuthorizationInterceptorStrategyTests
     }
 
     [Fact]
+    public async Task GetHeadersAsync_WithNoInterceptors_ShouldGetFromAuthenticationHandler()
+    {
+        //Arrange
+        var authentication = Substitute.For<IAuthenticationHandler>();
+        var expectedHeaders = MockAuthorizationHeaders.CreateHeaders();
+        authentication.AuthenticateAsync(null, Arg.Any<CancellationToken>()).Returns(ValueTask.FromResult<AuthorizationHeaders?>(expectedHeaders));
+
+        var loggerFactory = Substitute.For<ILoggerFactory>();
+        loggerFactory.CreateLogger("AuthorizationInterceptorStrategy").Returns(_logger);
+        var strategy = new AuthorizationInterceptorStrategy(loggerFactory, []);
+
+        //Act
+        var headers = await strategy.GetHeadersAsync("test", authentication, "user-1", CancellationToken.None);
+
+        //Assert
+        Assert.Same(expectedHeaders, headers);
+        await authentication.Received(1).AuthenticateAsync(null, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task GetHeadersAsync_WithNoExpires_ShouldGetFromFirstInterceptor()
     {
         //Arrange

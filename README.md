@@ -133,6 +133,46 @@ builder.Services.AddHttpClient("TargetApi")
         ActivatorUtilities.CreateInstance<TargetApiAuth>(sp, someOtherDependency));
 ```
 
+### Per-request cache keys
+
+When the same `HttpClient` is used for the same target API, but authorization headers must be cached separately by a request value, configure `CacheKeyBuilder`.
+
+This is useful when a single integration can authenticate on behalf of different users, tenants, stores, organizations, or any other request-scoped identifier. The value returned by `CacheKeyBuilder` is appended to the cache key used by the configured cache interceptor.
+
+Example using the authenticated user:
+
+```csharp
+builder.Services.AddHttpClient("TargetApi")
+    .AddAuthorizationInterceptorHandler<TargetApiAuth>(options =>
+    {
+        options.UseHybridCacheInterceptor();
+        options.CacheKeyBuilder = accessor =>
+            accessor.HttpContext?.User.FindFirst("sub")?.Value;
+    });
+```
+
+Example using a route or query value:
+
+```csharp
+builder.Services.AddHttpClient("TargetApi")
+    .AddAuthorizationInterceptorHandler<TargetApiAuth>(options =>
+    {
+        options.UseDistributedCacheInterceptor();
+        options.CacheKeyBuilder = accessor =>
+        {
+            var httpContext = accessor.HttpContext;
+            var storeId = httpContext?.Request.RouteValues["storeId"]?.ToString()
+                ?? httpContext?.Request.Query["storeId"].ToString();
+
+            return string.IsNullOrWhiteSpace(storeId) ? null : storeId;
+        };
+    });
+```
+
+With this configuration, requests using the same `HttpClient` but different `HttpContext.Request` values will not share the same cached authorization headers.
+
+If `CacheKeyBuilder` returns `null` or an empty value, the interceptor uses the default cache key for the `HttpClient` name.
+
 ### Custom interceptors
 
 Add custom logic steps to the interceptor chain:
@@ -152,11 +192,13 @@ Implement `IAuthorizationInterceptor`:
 public class MyLoggingInterceptor : IAuthorizationInterceptor
 {
     public ValueTask<AuthorizationHeaders?> GetHeadersAsync(
-        string name, CancellationToken ct) => new(new AuthorizationHeaders());
+        string name, CancellationToken ct, string? cacheKeySuffix = null)
+        => new(new AuthorizationHeaders());
 
     public ValueTask UpdateHeadersAsync(
         string name, AuthorizationHeaders? expiredHeaders,
-        AuthorizationHeaders? newHeaders, CancellationToken ct)
+        AuthorizationHeaders? newHeaders, CancellationToken ct,
+        string? cacheKeySuffix = null)
     {
         // Log or transform headers between cache and auth handler
         return default;
@@ -177,7 +219,7 @@ dotnet run --project TargetApi   # starts mock auth server on :5001
 dotnet run --project SourceApi   # calls the mock API with interceptor enabled
 ```
 
-Source: [samples/](samples/)
+Source: [Samples](./samples/README.md)
 
 ## License
 

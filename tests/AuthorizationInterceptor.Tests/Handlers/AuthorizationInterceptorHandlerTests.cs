@@ -84,6 +84,34 @@ public class AuthorizationInterceptorHandlerTests
         await _strategy.Received(1).GetHeadersAsync("test", _authenticationHandler, null, Arg.Any<CancellationToken>());
     }
 
+    [Fact]
+    public async Task SendAsync_WithoutCacheKeyBuilder_ShouldUseDefaultCacheKey()
+    {
+        //Arrange
+        var loggerFactory = Substitute.For<ILoggerFactory>();
+        loggerFactory.CreateLogger("AuthorizationInterceptorHandler").Returns(_logger);
+
+        var handler = new AuthorizationInterceptorHandler(
+            "test",
+            f => f.StatusCode == System.Net.HttpStatusCode.Unauthorized,
+            _authenticationHandler,
+            _strategy,
+            loggerFactory,
+            _serviceScopeFactory);
+        handler.InnerHandler = new MockAuthorizationInterceptorHandler();
+
+        using var client = new HttpClient(handler);
+        var request = new HttpRequestMessage(HttpMethod.Get, "http://somesite.com");
+
+        //Act
+        var response = await client.SendAsync(request, CancellationToken.None);
+
+        //Assert
+        Assert.True(response.IsSuccessStatusCode);
+        _serviceScopeFactory.DidNotReceive().CreateScope();
+        await _strategy.Received(1).GetHeadersAsync("test", _authenticationHandler, null, Arg.Any<CancellationToken>());
+    }
+
 
     [Fact]
     public async Task SendAsync_WithoutHeaders_WithCacheKeyBuilder_ShouldSendRequestCorrectly()
