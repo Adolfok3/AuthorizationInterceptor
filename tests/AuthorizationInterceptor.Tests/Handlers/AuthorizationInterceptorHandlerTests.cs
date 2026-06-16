@@ -16,7 +16,6 @@ public class AuthorizationInterceptorHandlerTests
     private readonly IAuthorizationInterceptorStrategy _strategy;
     private readonly IAuthenticationHandler _authenticationHandler;
     private readonly HttpClient _client;
-    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly Func<IHttpContextAccessor, string?>? _cacheKeyBuilder;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
@@ -24,7 +23,6 @@ public class AuthorizationInterceptorHandlerTests
     {
         _logger = Substitute.For<ILogger>();
         _logger.IsEnabled(LogLevel.Debug).Returns(true);
-        _serviceScopeFactory = Substitute.For<IServiceScopeFactory>();
         _cacheKeyBuilder = Substitute.For<Func<IHttpContextAccessor, string?>?>();
 
         var loggerFactory = Substitute.For<ILoggerFactory>();
@@ -39,19 +37,13 @@ public class AuthorizationInterceptorHandlerTests
         });
         httpContext.Request.Returns(httpRequest);
         _httpContextAccessor.HttpContext.Returns(httpContext);
-        var serviceScope = Substitute.For<IServiceScope>();
-        var services = new ServiceCollection();
-        services.AddSingleton(_httpContextAccessor);
-        var provider = services.BuildServiceProvider();
-        serviceScope.ServiceProvider.Returns(provider);
-        _serviceScopeFactory.CreateScope().Returns(serviceScope);
         _cacheKeyBuilder!.Invoke(_httpContextAccessor).Returns((_) => null);
 
         Func<HttpResponseMessage, bool> func = f => f.StatusCode == System.Net.HttpStatusCode.Unauthorized;
         _strategy = Substitute.For<IAuthorizationInterceptorStrategy>();
         _authenticationHandler = Substitute.For<IAuthenticationHandler>();
 
-        var handler = new AuthorizationInterceptorHandler("test", func, _authenticationHandler, _strategy, loggerFactory, _serviceScopeFactory, _cacheKeyBuilder);
+        var handler = new AuthorizationInterceptorHandler("test", func, _authenticationHandler, _strategy, loggerFactory, _httpContextAccessor, _cacheKeyBuilder);
         handler.InnerHandler = new MockAuthorizationInterceptorHandler();
         _client = new HttpClient(handler);
     }
@@ -97,7 +89,7 @@ public class AuthorizationInterceptorHandlerTests
             _authenticationHandler,
             _strategy,
             loggerFactory,
-            _serviceScopeFactory);
+            _httpContextAccessor);
         handler.InnerHandler = new MockAuthorizationInterceptorHandler();
 
         using var client = new HttpClient(handler);
@@ -108,7 +100,6 @@ public class AuthorizationInterceptorHandlerTests
 
         //Assert
         Assert.True(response.IsSuccessStatusCode);
-        _serviceScopeFactory.DidNotReceive().CreateScope();
         await _strategy.Received(1).GetHeadersAsync("test", _authenticationHandler, null, Arg.Any<CancellationToken>());
     }
 

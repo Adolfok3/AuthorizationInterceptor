@@ -1,5 +1,6 @@
 ﻿using AuthorizationInterceptor.Extensions;
 using AuthorizationInterceptor.Tests.Utils;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AuthorizationInterceptor.Tests.Extensions;
@@ -92,5 +93,22 @@ public class HttpClientBuilderExtensionsTests
 
         // Assert
         Assert.Null(Record.Exception(act));
+    }
+
+    [Fact]
+    public void AddAuthorizationInterceptorHandler_WithAuthHandler_ShouldRegisterHttpContextAccessor()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddHttpClient("Test")
+            .AddAuthorizationInterceptorHandler((provider) => ActivatorUtilities.CreateInstance<MockAuthorizationInterceptorAuthenticationHandler>(provider), options =>
+            {
+                options.CacheKeyBuilder = accessor => accessor.HttpContext?.Request.Headers["x-mycustom-header"].ToString();
+            });
+
+        // Assert
+        Assert.Contains(services, descriptor => descriptor.ServiceType == typeof(IHttpContextAccessor));
     }
 }

@@ -3,7 +3,6 @@ using AuthorizationInterceptor.Extensions.Abstractions.Headers;
 using AuthorizationInterceptor.Strategies;
 using AuthorizationInterceptor.Utils;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace AuthorizationInterceptor.Handlers;
@@ -15,17 +14,17 @@ internal class AuthorizationInterceptorHandler : DelegatingHandler
     private readonly IAuthenticationHandler _authenticationHandler;
     private readonly IAuthorizationInterceptorStrategy _strategy;
     private readonly ILogger _logger;
-    private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly Func<IHttpContextAccessor, string?>? _cacheKeyBuilder;
 
-    public AuthorizationInterceptorHandler(string name, Func<HttpResponseMessage, bool> unauthenticatedPredicate, IAuthenticationHandler authenticationHandler, IAuthorizationInterceptorStrategy strategy, ILoggerFactory loggerFactory, IServiceScopeFactory serviceScopeFactory, Func<IHttpContextAccessor, string?>? cacheKeyBuilder = null)
+    public AuthorizationInterceptorHandler(string name, Func<HttpResponseMessage, bool> unauthenticatedPredicate, IAuthenticationHandler authenticationHandler, IAuthorizationInterceptorStrategy strategy, ILoggerFactory loggerFactory, IHttpContextAccessor httpContextAccessor, Func<IHttpContextAccessor, string?>? cacheKeyBuilder = null)
     {
         _name = name;
         _strategy = strategy;
         _authenticationHandler = authenticationHandler;
         _unauthenticatedPredicate = unauthenticatedPredicate;
         _logger = loggerFactory.CreateLogger("AuthorizationInterceptorHandler");
-        _serviceScopeFactory = serviceScopeFactory;
+        _httpContextAccessor = httpContextAccessor;
         _cacheKeyBuilder = cacheKeyBuilder;
     }
 
@@ -74,9 +73,7 @@ internal class AuthorizationInterceptorHandler : DelegatingHandler
         if (_cacheKeyBuilder is null)
             return null;
 
-        using var scope = _serviceScopeFactory.CreateScope();
-        var httpContextAccessor = scope.ServiceProvider.GetRequiredService<IHttpContextAccessor>();
-        return _cacheKeyBuilder.Invoke(httpContextAccessor);
+        return _cacheKeyBuilder.Invoke(_httpContextAccessor);
     }
 
     private HttpRequestMessage AddHeaders(HttpRequestMessage request, AuthorizationHeaders headers, string? cacheKeySuffix)
