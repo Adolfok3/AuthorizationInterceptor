@@ -3,6 +3,7 @@ using AuthorizationInterceptor.Extensions.Abstractions.Interceptors;
 using AuthorizationInterceptor.Handlers;
 using AuthorizationInterceptor.Options;
 using AuthorizationInterceptor.Strategies;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -32,7 +33,7 @@ public static class HttpClientBuilderExtensions
             CreateAuthenticationHandler<T>(provider),
             CreateStrategy(provider, builder, optionsInstance.Interceptors),
             provider.GetRequiredService<ILoggerFactory>(),
-            provider.GetRequiredService<IServiceScopeFactory>(),
+            provider.GetRequiredService<IHttpContextAccessor>(),
             optionsInstance.CacheKeyBuilder
         ));
 
@@ -50,6 +51,8 @@ public static class HttpClientBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(authHandlerImpl);
 
+        builder.Services.AddHttpContextAccessor();
+
         var optionsInstance = RequireOptions(options);
         builder.AddHttpMessageHandler(provider => new AuthorizationInterceptorHandler(
             builder.Name,
@@ -57,7 +60,7 @@ public static class HttpClientBuilderExtensions
             authHandlerImpl.Invoke(provider),
             CreateStrategy(provider, builder, optionsInstance.Interceptors),
             provider.GetRequiredService<ILoggerFactory>(),
-            provider.GetRequiredService<IServiceScopeFactory>(),
+            provider.GetRequiredService<IHttpContextAccessor>(),
             optionsInstance.CacheKeyBuilder
         ));
 

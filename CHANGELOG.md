@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [6.0.1] - 2026-06-16
+
+### Fixed
+
+- Resolved `IHttpContextAccessor` directly in the authorization handler instead of creating a runtime service scope for cache key building.
+- Registered `IHttpContextAccessor` for all `AddAuthorizationInterceptorHandler` overloads so `CacheKeyBuilder` works consistently.
+
 ## [6.0.0] - 2026-06-15
 
 ### Added
