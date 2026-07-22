@@ -8,34 +8,23 @@ internal class MemoryCacheInterceptor(IMemoryCache memoryCache) : IAuthorization
 {
     private const string CacheKey = "authorization_interceptor_memory_cache_MemoryCacheInterceptor_{0}";
 
-    public ValueTask<AuthorizationHeaders?> GetHeadersAsync(string name, CancellationToken cancellationToken, string? cacheKeySuffix = null)
+    public ValueTask<AuthorizationHeaders?> GetHeadersAsync(string key, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var key = MountCacheKey(name, cacheKeySuffix);
-
-        var headers = memoryCache.Get<AuthorizationHeaders?>(key);
+        var headers = memoryCache.Get<AuthorizationHeaders?>(string.Format(CacheKey, key));
 
         return new ValueTask<AuthorizationHeaders?>(headers);
     }
 
-    private static string MountCacheKey(string name, string? cacheKeySuffix)
-    {
-        return string.IsNullOrEmpty(cacheKeySuffix)
-                    ? string.Format(CacheKey, name)
-                    : $"{string.Format(CacheKey, name)}_{cacheKeySuffix}";
-    }
-
-    public ValueTask UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders, CancellationToken cancellationToken, string? cacheKeySuffix = null)
+    public ValueTask UpdateHeadersAsync(string key, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         if (newHeaders == null)
             return ValueTask.CompletedTask;
 
-        var key = MountCacheKey(name, cacheKeySuffix);
-
-        memoryCache.Set(key, newHeaders, new MemoryCacheEntryOptions
+        memoryCache.Set(string.Format(CacheKey, key), newHeaders, new MemoryCacheEntryOptions
         {
             AbsoluteExpirationRelativeToNow = newHeaders.GetRealExpiration(),
             Priority = CacheItemPriority.NeverRemove

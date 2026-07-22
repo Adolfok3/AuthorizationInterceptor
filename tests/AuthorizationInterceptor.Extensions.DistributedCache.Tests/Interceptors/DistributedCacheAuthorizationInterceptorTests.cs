@@ -31,7 +31,7 @@ public class DistributedCacheAuthorizationInterceptorTests
         _cache.GetAsync(Key).Returns(bytes);
 
         //Act
-        headers = await _interceptor.GetHeadersAsync("test", CancellationToken.None, null);
+        headers = await _interceptor.GetHeadersAsync("test", CancellationToken.None);
 
         //Assert
         headers.Should().NotBeNull();
@@ -52,7 +52,7 @@ public class DistributedCacheAuthorizationInterceptorTests
         _cache.GetAsync(Key).Returns(bytes);
 
         //Act
-        headers = await _interceptor.GetHeadersAsync("test", CancellationToken.None, null);
+        headers = await _interceptor.GetHeadersAsync("test", CancellationToken.None);
 
         //Assert
         headers.Should().NotBeNull();
@@ -72,7 +72,7 @@ public class DistributedCacheAuthorizationInterceptorTests
         _cache.GetAsync(Key).Returns(Task.FromResult<byte[]?>(null));
 
         //Act
-        var headers = await _interceptor.GetHeadersAsync("test", CancellationToken.None, null);
+        var headers = await _interceptor.GetHeadersAsync("test", CancellationToken.None);
 
         //Assert
         headers.Should().BeNull();
@@ -90,7 +90,7 @@ public class DistributedCacheAuthorizationInterceptorTests
         };
 
         //Act
-        var act = async () => await _interceptor.UpdateHeadersAsync("test", null, headers, CancellationToken.None, null);
+        var act = async () => await _interceptor.UpdateHeadersAsync("test", null, headers, CancellationToken.None);
 
         //Assert
         await act.Should().NotThrowAsync();
@@ -101,7 +101,7 @@ public class DistributedCacheAuthorizationInterceptorTests
     public async Task UpdateHeadersAsync_WithNullHeaders_ShouldNotUpdate()
     {
         //Act
-        var act = async () => await _interceptor.UpdateHeadersAsync("test", null, null, CancellationToken.None, null);
+        var act = async () => await _interceptor.UpdateHeadersAsync("test", null, null, CancellationToken.None);
 
         //Assert
         await act.Should().NotThrowAsync();
@@ -121,7 +121,7 @@ public class DistributedCacheAuthorizationInterceptorTests
         _cache.GetAsync($"{Key}_some-suffix").Returns(bytes);
 
         //Act
-        headers = await _interceptor.GetHeadersAsync("test", CancellationToken.None, "some-suffix");
+        headers = await _interceptor.GetHeadersAsync("test_some-suffix", CancellationToken.None);
 
         //Assert
         headers.Should().NotBeNull();
@@ -142,7 +142,7 @@ public class DistributedCacheAuthorizationInterceptorTests
         _cache.GetAsync($"{Key}_some-suffix").Returns(bytes);
 
         //Act
-        headers = await _interceptor.GetHeadersAsync("test", CancellationToken.None, "some-suffix");
+        headers = await _interceptor.GetHeadersAsync("test_some-suffix", CancellationToken.None);
 
         //Assert
         headers.Should().NotBeNull();
@@ -162,7 +162,7 @@ public class DistributedCacheAuthorizationInterceptorTests
         _cache.GetAsync(Key).Returns(Task.FromResult<byte[]?>(null));
 
         //Act
-        var headers = await _interceptor.GetHeadersAsync("test", CancellationToken.None, "some-suffix");
+        var headers = await _interceptor.GetHeadersAsync("test_some-suffix", CancellationToken.None);
 
         //Assert
         headers.Should().BeNull();
@@ -180,7 +180,7 @@ public class DistributedCacheAuthorizationInterceptorTests
         };
 
         //Act
-        var act = async () => await _interceptor.UpdateHeadersAsync("test", null, headers, CancellationToken.None, "some-suffix");
+        var act = async () => await _interceptor.UpdateHeadersAsync("test_some-suffix", null, headers, CancellationToken.None);
 
         //Assert
         await act.Should().NotThrowAsync();
@@ -191,7 +191,7 @@ public class DistributedCacheAuthorizationInterceptorTests
     public async Task UpdateHeadersAsync_WithNullHeaders_WithCacheKeySuffix_ShouldNotUpdate()
     {
         //Act
-        var act = async () => await _interceptor.UpdateHeadersAsync("test", null, null, CancellationToken.None, "some-suffix");
+        var act = async () => await _interceptor.UpdateHeadersAsync("test_some-suffix", null, null, CancellationToken.None);
 
         //Assert
         await act.Should().NotThrowAsync();

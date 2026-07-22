@@ -181,6 +181,8 @@ With this configuration, requests using the same `HttpClient` but different `Htt
 
 If `CacheKeyBuilder` returns `null` or an empty value, the interceptor uses the default cache key for the `HttpClient` name.
 
+Interceptors receive the two halves already combined, as a single `key` parameter: the `HttpClient` name on its own when no suffix applies, or `{name}_{suffix}` when one does.
+
 ### Custom interceptors
 
 Add custom logic steps to the interceptor chain:
@@ -200,13 +202,12 @@ Implement `IAuthorizationInterceptor`:
 public class MyLoggingInterceptor : IAuthorizationInterceptor
 {
     public ValueTask<AuthorizationHeaders?> GetHeadersAsync(
-        string name, CancellationToken ct, string? cacheKeySuffix = null)
+        string key, CancellationToken ct)
         => new(new AuthorizationHeaders());
 
     public ValueTask UpdateHeadersAsync(
-        string name, AuthorizationHeaders? expiredHeaders,
-        AuthorizationHeaders? newHeaders, CancellationToken ct,
-        string? cacheKeySuffix = null)
+        string key, AuthorizationHeaders? expiredHeaders,
+        AuthorizationHeaders? newHeaders, CancellationToken ct)
     {
         // Log or transform headers between cache and auth handler
         return default;

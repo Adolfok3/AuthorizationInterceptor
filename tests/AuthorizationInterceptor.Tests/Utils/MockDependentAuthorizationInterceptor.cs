@@ -17,9 +17,9 @@ public class MockDependentAuthorizationInterceptor(MockInterceptorDependency dep
 {
     public MockInterceptorDependency Dependency => dependency;
 
-    public ValueTask<AuthorizationHeaders?> GetHeadersAsync(string name, CancellationToken cancellationToken, string? cacheKeySuffix = null)
+    public ValueTask<AuthorizationHeaders?> GetHeadersAsync(string key, CancellationToken cancellationToken)
         => ValueTask.FromResult<AuthorizationHeaders?>(null);
 
-    public ValueTask UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders, CancellationToken cancellationToken, string? cacheKeySuffix = null)
+    public ValueTask UpdateHeadersAsync(string key, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders, CancellationToken cancellationToken)
         => ValueTask.CompletedTask;
 }

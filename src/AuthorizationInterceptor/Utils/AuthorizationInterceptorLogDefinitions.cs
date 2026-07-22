@@ -6,8 +6,8 @@ namespace AuthorizationInterceptor.Utils;
 [ExcludeFromCodeCoverage]
 public static partial class AuthorizationInterceptorLogDefinitions
 {
-    [LoggerMessage(EventId = 1, Level = LogLevel.Warning, Message = "No interceptor was configured for HttpClient `{httpClientName}`. A Runtime interceptor was used instead. It is recommended to use at least the MemoryCache interceptor.")]
-    public static partial void LogNoInterceptorUsed(this ILogger logger, string httpClientName);
+    [LoggerMessage(EventId = 1, Level = LogLevel.Warning, Message = "No interceptor was configured for integration `{integrationKey}`. A Runtime interceptor was used instead. It is recommended to use at least the MemoryCache interceptor.")]
+    public static partial void LogNoInterceptorUsed(this ILogger logger, string integrationKey);
 
     [LoggerMessage(EventId = 2, Level = LogLevel.Warning, Message = "AuthorizationInterceptor is not available for synchronous requests. Consider using asynchronous requests!")]
     public static partial void LogUnavailableForSyncRequests(this ILogger logger);
@@ -24,7 +24,7 @@ public static partial class AuthorizationInterceptorLogDefinitions
     [LoggerMessage(EventId = 6, Level = LogLevel.Debug, Message = "Adding header `{Header}` to request with integration `{Name}` and cache key suffix `{CacheKeySuffix}`")]
     public static partial void LogAddingHeader(this ILogger logger, string header, string name, string? cacheKeySuffix);
 
-    [LoggerMessage(EventId = 7, Level = LogLevel.Debug, Message = "Headers were refreshed by a concurrent caller with integration `{Name}` and cache key suffix `{CacheKeySuffix}`. Skipping authentication.")]
-    public static partial void LogHeadersRefreshedByConcurrentCaller(this ILogger logger, string name, string? cacheKeySuffix);
+    [LoggerMessage(EventId = 7, Level = LogLevel.Debug, Message = "Headers were refreshed by a concurrent caller with integration `{IntegrationKey}`. Skipping authentication.")]
+    public static partial void LogHeadersRefreshedByConcurrentCaller(this ILogger logger, string integrationKey);
 }
 

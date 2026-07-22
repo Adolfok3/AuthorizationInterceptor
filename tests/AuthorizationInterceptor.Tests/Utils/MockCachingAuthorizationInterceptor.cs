@@ -12,32 +12,29 @@ public class MockCachingAuthorizationInterceptor(bool readOnly = false) : IAutho
 {
     private readonly Dictionary<string, AuthorizationHeaders> _cache = [];
 
-    public ValueTask<AuthorizationHeaders?> GetHeadersAsync(string name, CancellationToken cancellationToken, string? cacheKeySuffix = null)
+    public ValueTask<AuthorizationHeaders?> GetHeadersAsync(string key, CancellationToken cancellationToken)
     {
         lock (_cache)
         {
-            _cache.TryGetValue(BuildKey(name, cacheKeySuffix), out var headers);
+            _cache.TryGetValue(key, out var headers);
             return ValueTask.FromResult<AuthorizationHeaders?>(headers);
         }
     }
 
-    public ValueTask UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders, CancellationToken cancellationToken, string? cacheKeySuffix = null)
+    public ValueTask UpdateHeadersAsync(string key, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders, CancellationToken cancellationToken)
     {
         if (newHeaders == null || readOnly)
             return ValueTask.CompletedTask;
 
         lock (_cache)
-            _cache[BuildKey(name, cacheKeySuffix)] = newHeaders;
+            _cache[key] = newHeaders;
 
         return ValueTask.CompletedTask;
     }
 
-    public void Seed(string name, AuthorizationHeaders headers, string? cacheKeySuffix = null)
+    public void Seed(string key, AuthorizationHeaders headers)
     {
         lock (_cache)
-            _cache[BuildKey(name, cacheKeySuffix)] = headers;
+            _cache[key] = headers;
     }
-
-    private static string BuildKey(string name, string? cacheKeySuffix)
-        => $"{name}_{cacheKeySuffix}";
 }

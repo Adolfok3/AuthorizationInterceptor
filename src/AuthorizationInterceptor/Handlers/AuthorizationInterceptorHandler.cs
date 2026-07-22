@@ -39,9 +39,12 @@ internal class AuthorizationInterceptorHandler : DelegatingHandler
 
     private async Task<HttpResponseMessage> SendWithInterceptorAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
+        // This is the only place that knows both halves of the identity, so it builds the key the rest
+        // of the pipeline works with, and keeps logging them separately.
         var cacheKeySuffix = GetCacheKeySuffix();
+        var key = BuildKey(cacheKeySuffix);
 
-        var headers = await _strategy.GetHeadersAsync(_name, _authenticationHandler, cacheKeySuffix, cancellationToken);
+        var headers = await _strategy.GetHeadersAsync(key, _authenticationHandler, cancellationToken);
         if (headers == null || !headers.Any())
         {
             _logger.LogNoHeadersAddedToRequest(_name, cacheKeySuffix);
@@ -56,7 +59,7 @@ internal class AuthorizationInterceptorHandler : DelegatingHandler
 
         _logger.CaughtUnauthenticatedPredicateFromResponse(_name, cacheKeySuffix);
 
-        headers = await _strategy.UpdateHeadersAsync(_name, headers, _authenticationHandler, cacheKeySuffix, cancellationToken);
+        headers = await _strategy.UpdateHeadersAsync(key, headers, _authenticationHandler, cancellationToken);
         if (headers == null || !headers.Any())
         {
             _logger.LogNoHeadersAddedToRequest(_name, cacheKeySuffix);
@@ -75,6 +78,9 @@ internal class AuthorizationInterceptorHandler : DelegatingHandler
 
         return _cacheKeyBuilder.Invoke(_httpContextAccessor);
     }
+
+    private string BuildKey(string? cacheKeySuffix)
+        => string.IsNullOrEmpty(cacheKeySuffix) ? _name : $"{_name}_{cacheKeySuffix}";
 
     private HttpRequestMessage AddHeaders(HttpRequestMessage request, AuthorizationHeaders headers, string? cacheKeySuffix)
     {

@@ -11,57 +11,57 @@ internal class AuthorizationInterceptorStrategy(ILoggerFactory loggerFactory, IA
 {
     private readonly ILogger _logger = loggerFactory.CreateLogger("AuthorizationInterceptorStrategy");
 
-    public async ValueTask<AuthorizationHeaders?> GetHeadersAsync(string name, IAuthenticationHandler authenticationHandler, string? cacheKeySuffix, CancellationToken cancellationToken)
+    public async ValueTask<AuthorizationHeaders?> GetHeadersAsync(string key, IAuthenticationHandler authenticationHandler, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         if (interceptors.Length == 0)
         {
-            _logger.LogNoInterceptorUsed(name);
-            return await AuthenticateAsync(name, null, authenticationHandler, cacheKeySuffix, cancellationToken);
+            _logger.LogNoInterceptorUsed(key);
+            return await AuthenticateAsync(key, null, authenticationHandler, cancellationToken);
         }
 
-        var lookup = await LookupHeadersAsync(name, cacheKeySuffix, cancellationToken);
+        var lookup = await LookupHeadersAsync(key, cancellationToken);
         if (lookup.IsValid)
-            return await UpdateHeadersInInterceptorsAsync(name, lookup.Index, lookup.Headers, cacheKeySuffix, cancellationToken);
+            return await UpdateHeadersInInterceptorsAsync(key, lookup.Index, lookup.Headers, cancellationToken);
 
-        using var handle = await authenticationLock.AcquireAsync(BuildLockKey(name, cacheKeySuffix), cancellationToken);
+        using var handle = await authenticationLock.AcquireAsync(key, cancellationToken);
 
         if (handle.WasContended)
         {
-            var refreshed = await LookupHeadersAsync(name, cacheKeySuffix, cancellationToken);
+            var refreshed = await LookupHeadersAsync(key, cancellationToken);
             if (refreshed.IsValid)
             {
-                _logger.LogHeadersRefreshedByConcurrentCaller(name, cacheKeySuffix);
-                return await UpdateHeadersInInterceptorsAsync(name, refreshed.Index, refreshed.Headers, cacheKeySuffix, cancellationToken);
+                _logger.LogHeadersRefreshedByConcurrentCaller(key);
+                return await UpdateHeadersInInterceptorsAsync(key, refreshed.Index, refreshed.Headers, cancellationToken);
             }
 
             lookup = refreshed;
         }
 
-        return await AuthenticateAsync(name, lookup.Headers, authenticationHandler, cacheKeySuffix, cancellationToken);
+        return await AuthenticateAsync(key, lookup.Headers, authenticationHandler, cancellationToken);
     }
 
-    public async ValueTask<AuthorizationHeaders?> UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, IAuthenticationHandler authenticationHandler, string? cacheKeySuffix, CancellationToken cancellationToken)
+    public async ValueTask<AuthorizationHeaders?> UpdateHeadersAsync(string key, AuthorizationHeaders? expiredHeaders, IAuthenticationHandler authenticationHandler, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         if (interceptors.Length == 0)
-            return await AuthenticateAsync(name, expiredHeaders, authenticationHandler, cacheKeySuffix, cancellationToken);
+            return await AuthenticateAsync(key, expiredHeaders, authenticationHandler, cancellationToken);
 
-        using var handle = await authenticationLock.AcquireAsync(BuildLockKey(name, cacheKeySuffix), cancellationToken);
+        using var handle = await authenticationLock.AcquireAsync(key, cancellationToken);
 
         if (handle.WasContended)
         {
-            var refreshed = await LookupHeadersAsync(name, cacheKeySuffix, cancellationToken);
+            var refreshed = await LookupHeadersAsync(key, cancellationToken);
             if (refreshed.IsValid && IsNewerThan(refreshed.Headers, expiredHeaders))
             {
-                _logger.LogHeadersRefreshedByConcurrentCaller(name, cacheKeySuffix);
-                return await UpdateHeadersInInterceptorsAsync(name, refreshed.Index, refreshed.Headers, cacheKeySuffix, cancellationToken);
+                _logger.LogHeadersRefreshedByConcurrentCaller(key);
+                return await UpdateHeadersInInterceptorsAsync(key, refreshed.Index, refreshed.Headers, cancellationToken);
             }
         }
 
-        return await AuthenticateAsync(name, expiredHeaders, authenticationHandler, cacheKeySuffix, cancellationToken);
+        return await AuthenticateAsync(key, expiredHeaders, authenticationHandler, cancellationToken);
     }
 
     /// <summary>
@@ -69,62 +69,62 @@ internal class AuthorizationInterceptorStrategy(ILoggerFactory loggerFactory, IA
     /// came from and whether they are still valid. Expired headers are returned as well, so they can be
     /// handed to the authentication handler for a refresh token flow.
     /// </summary>
-    private async ValueTask<HeadersLookup> LookupHeadersAsync(string name, string? cacheKeySuffix, CancellationToken cancellationToken)
+    private async ValueTask<HeadersLookup> LookupHeadersAsync(string key, CancellationToken cancellationToken)
     {
         for (var index = 0; index < interceptors.Length; index++)
         {
             try
             {
-                LogDebug("Getting headers from interceptor '{interceptor}' with integration '{name}'", interceptors[index].GetType().Name, name);
+                LogDebug("Getting headers from interceptor '{interceptor}' with integration '{key}'", interceptors[index].GetType().Name, key);
 
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var headers = await interceptors[index].GetHeadersAsync(name, cancellationToken, cacheKeySuffix);
+                var headers = await interceptors[index].GetHeadersAsync(key, cancellationToken);
                 if (headers == null)
                     continue;
 
-                LogDebug("Headers found in interceptor '{interceptor}' with integration '{name}'", interceptors[index].GetType().Name, name);
+                LogDebug("Headers found in interceptor '{interceptor}' with integration '{key}'", interceptors[index].GetType().Name, key);
 
                 if (headers.IsHeadersValid())
                 {
-                    LogDebug("Headers still valid in interceptor '{interceptor}' with integration '{name}'", interceptors[index].GetType().Name, name);
+                    LogDebug("Headers still valid in interceptor '{interceptor}' with integration '{key}'", interceptors[index].GetType().Name, key);
                     return new HeadersLookup(headers, index, true);
                 }
 
-                LogDebug("Headers is expired in interceptor '{interceptor}' with integration '{name}'", interceptors[index].GetType().Name, name);
+                LogDebug("Headers is expired in interceptor '{interceptor}' with integration '{key}'", interceptors[index].GetType().Name, key);
                 return new HeadersLookup(headers, index, false);
             }
             catch (OperationCanceledException)
             {
-                _logger.LogOperationCanceledInInterceptor(interceptors[index].GetType().Name, name);
+                _logger.LogOperationCanceledInInterceptor(interceptors[index].GetType().Name, key);
                 throw;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting headers from interceptor '{interceptor}' with integration '{name}'", interceptors[index].GetType().Name, name);
+                _logger.LogError(ex, "Error getting headers from interceptor '{interceptor}' with integration '{key}'", interceptors[index].GetType().Name, key);
             }
         }
 
         return new HeadersLookup(null, interceptors.Length, false);
     }
 
-    private async ValueTask<AuthorizationHeaders?> AuthenticateAsync(string name, AuthorizationHeaders? expiredHeaders, IAuthenticationHandler authenticationHandler, string? cacheKeySuffix, CancellationToken cancellationToken)
+    private async ValueTask<AuthorizationHeaders?> AuthenticateAsync(string key, AuthorizationHeaders? expiredHeaders, IAuthenticationHandler authenticationHandler, CancellationToken cancellationToken)
     {
-        LogDebug("Getting new headers from AuthenticationHandler '{authenticationHandler}' with integration '{name}'", authenticationHandler.GetType().Name, name);
+        LogDebug("Getting new headers from AuthenticationHandler '{authenticationHandler}' with integration '{key}'", authenticationHandler.GetType().Name, key);
 
         cancellationToken.ThrowIfCancellationRequested();
 
         var newHeaders = await authenticationHandler.AuthenticateAsync(expiredHeaders, cancellationToken);
         if (newHeaders == null)
         {
-            LogDebug("No new headers generated in AuthenticationHandler '{authenticationHandler}' with integration '{name}'", authenticationHandler.GetType().Name, name);
+            LogDebug("No new headers generated in AuthenticationHandler '{authenticationHandler}' with integration '{key}'", authenticationHandler.GetType().Name, key);
             return null;
         }
 
-        return await UpdateHeadersInInterceptorsAsync(name, interceptors.Length, newHeaders, cacheKeySuffix, cancellationToken);
+        return await UpdateHeadersInInterceptorsAsync(key, interceptors.Length, newHeaders, cancellationToken);
     }
 
-    private async ValueTask<AuthorizationHeaders?> UpdateHeadersInInterceptorsAsync(string name, int startIndex, AuthorizationHeaders? headers, string? cacheKeySuffix, CancellationToken cancellationToken)
+    private async ValueTask<AuthorizationHeaders?> UpdateHeadersInInterceptorsAsync(string key, int startIndex, AuthorizationHeaders? headers, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -135,20 +135,20 @@ internal class AuthorizationInterceptorStrategy(ILoggerFactory loggerFactory, IA
         {
             try
             {
-                LogDebug("Updating headers in interceptor '{interceptor}' with integration '{name}'", interceptors[index].GetType().Name, name);
+                LogDebug("Updating headers in interceptor '{interceptor}' with integration '{key}'", interceptors[index].GetType().Name, key);
 
                 cancellationToken.ThrowIfCancellationRequested();
 
-                await interceptors[index].UpdateHeadersAsync(name, null, headers, cancellationToken, cacheKeySuffix);
+                await interceptors[index].UpdateHeadersAsync(key, null, headers, cancellationToken);
             }
             catch (OperationCanceledException)
             {
-                _logger.LogOperationCanceledInInterceptor(interceptors[index].GetType().Name, name);
+                _logger.LogOperationCanceledInInterceptor(interceptors[index].GetType().Name, key);
                 throw;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating headers in interceptor '{interceptor}' with integration '{name}'", interceptors[index].GetType().Name, name);
+                _logger.LogError(ex, "Error updating headers in interceptor '{interceptor}' with integration '{key}'", interceptors[index].GetType().Name, key);
             }
         }
 
@@ -161,9 +161,6 @@ internal class AuthorizationInterceptorStrategy(ILoggerFactory loggerFactory, IA
     /// </summary>
     private static bool IsNewerThan(AuthorizationHeaders? cached, AuthorizationHeaders? expiredHeaders)
         => cached != null && (expiredHeaders == null || cached.AuthenticatedAt > expiredHeaders.AuthenticatedAt);
-
-    private static string BuildLockKey(string name, string? cacheKeySuffix)
-        => string.IsNullOrEmpty(cacheKeySuffix) ? name : $"{name}_{cacheKeySuffix}";
 
     private void LogDebug(string message, params object[] parameters)
     {
