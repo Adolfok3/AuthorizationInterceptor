@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [6.0.2] - 2026-07-21
+
+### Fixed
+
+- Interceptor dependencies passed to `UseCustomInterceptor` / `UseMemoryCacheInterceptor` are now registered at registration time. They used to be registered inside the `HttpClient` handler factory, which runs after the service provider is built: the interceptor was activated before the callback ran, and the callback itself threw `InvalidOperationException: The service collection cannot be modified because it is read-only` on any new registration.
+- Concurrent requests that find no valid headers now perform a single authentication per `HttpClient` name and cache key suffix, instead of one authentication per in-flight request. Callers that had to wait re-check the interceptors and reuse whatever the winner cached.
+- After an unauthenticated response, a caller no longer re-authenticates if another caller already replaced the rejected headers, determined by comparing `AuthorizationHeaders.AuthenticatedAt`.
+
 ## [6.0.1] - 2026-06-16
 
 ### Fixed

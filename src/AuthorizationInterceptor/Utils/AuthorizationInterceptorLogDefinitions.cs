@@ -23,5 +23,8 @@ public static partial class AuthorizationInterceptorLogDefinitions
 
     [LoggerMessage(EventId = 6, Level = LogLevel.Debug, Message = "Adding header `{Header}` to request with integration `{Name}` and cache key suffix `{CacheKeySuffix}`")]
     public static partial void LogAddingHeader(this ILogger logger, string header, string name, string? cacheKeySuffix);
+
+    [LoggerMessage(EventId = 7, Level = LogLevel.Debug, Message = "Headers were refreshed by a concurrent caller with integration `{Name}` and cache key suffix `{CacheKeySuffix}`. Skipping authentication.")]
+    public static partial void LogHeadersRefreshedByConcurrentCaller(this ILogger logger, string name, string? cacheKeySuffix);
 }
 

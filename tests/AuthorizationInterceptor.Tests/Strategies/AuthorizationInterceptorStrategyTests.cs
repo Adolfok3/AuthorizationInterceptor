@@ -3,6 +3,7 @@ using AuthorizationInterceptor.Extensions.Abstractions.Headers;
 using AuthorizationInterceptor.Extensions.Abstractions.Interceptors;
 using AuthorizationInterceptor.Strategies;
 using AuthorizationInterceptor.Tests.Utils;
+using AuthorizationInterceptor.Utils;
 using Microsoft.Extensions.Logging;
 using NSubstitute.ExceptionExtensions;
 
@@ -25,7 +26,7 @@ public class AuthorizationInterceptorStrategyTests
         _logger.IsEnabled(LogLevel.Debug).Returns(true);
         var loggerFactory = Substitute.For<ILoggerFactory>();
         loggerFactory.CreateLogger("AuthorizationInterceptorStrategy").Returns(_logger);
-        _stategy = new AuthorizationInterceptorStrategy(loggerFactory, [_interceptor1, _interceptor2, _interceptor3]);
+        _stategy = new AuthorizationInterceptorStrategy(loggerFactory, [_interceptor1, _interceptor2, _interceptor3], new KeyedAsyncLock());
     }
 
     [Fact]
@@ -69,7 +70,7 @@ public class AuthorizationInterceptorStrategyTests
 
         var loggerFactory = Substitute.For<ILoggerFactory>();
         loggerFactory.CreateLogger("AuthorizationInterceptorStrategy").Returns(_logger);
-        var strategy = new AuthorizationInterceptorStrategy(loggerFactory, []);
+        var strategy = new AuthorizationInterceptorStrategy(loggerFactory, [], new KeyedAsyncLock());
 
         //Act
         var headers = await strategy.GetHeadersAsync("test", authentication, "user-1", CancellationToken.None);
@@ -252,5 +253,88 @@ public class AuthorizationInterceptorStrategyTests
         await _interceptor1.Received(0).UpdateHeadersAsync("test", Arg.Any<AuthorizationHeaders?>(), Arg.Any<AuthorizationHeaders?>(), Arg.Any<CancellationToken>(), Arg.Any<string?>());
         await _interceptor2.Received(0).UpdateHeadersAsync("test", Arg.Any<AuthorizationHeaders?>(), Arg.Any<AuthorizationHeaders?>(), Arg.Any<CancellationToken>(), Arg.Any<string?>());
         await _interceptor3.Received(0).UpdateHeadersAsync("test", Arg.Any<AuthorizationHeaders?>(), Arg.Any<AuthorizationHeaders?>(), Arg.Any<CancellationToken>(), Arg.Any<string?>());
+    }
+
+    [Fact]
+    public async Task GetHeadersAsync_WithConcurrentCallers_ShouldAuthenticateOnlyOnce()
+    {
+        //Arrange
+        var cache = new MockCachingAuthorizationInterceptor();
+        var authentication = new MockCountingAuthenticationHandler(TimeSpan.FromMilliseconds(200));
+        var strategy = CreateStrategy(cache);
+
+        //Act
+        var results = await Task.WhenAll(Enumerable.Range(0, 25)
+            .Select(_ => Task.Run(async () => await strategy.GetHeadersAsync("test", authentication, null, CancellationToken.None))));
+
+        //Assert
+        Assert.Equal(1, authentication.Calls);
+        Assert.All(results, headers => Assert.NotNull(headers));
+    }
+
+    [Fact]
+    public async Task GetHeadersAsync_WithConcurrentCallers_AndDifferentCacheKeySuffixes_ShouldAuthenticateOncePerSuffix()
+    {
+        //Arrange
+        var cache = new MockCachingAuthorizationInterceptor();
+        var authentication = new MockCountingAuthenticationHandler(TimeSpan.FromMilliseconds(200));
+        var strategy = CreateStrategy(cache);
+
+        //Act
+        var results = await Task.WhenAll(Enumerable.Range(0, 24)
+            .Select(index => Task.Run(async () => await strategy.GetHeadersAsync("test", authentication, $"tenant-{index % 4}", CancellationToken.None))));
+
+        //Assert
+        Assert.Equal(4, authentication.Calls);
+        Assert.All(results, headers => Assert.NotNull(headers));
+    }
+
+    [Fact]
+    public async Task UpdateHeadersAsync_WithConcurrentCallers_ShouldAuthenticateOnlyOnce()
+    {
+        //Arrange
+        var expiredHeaders = MockAuthorizationHeaders.CreateHeaders();
+        var cache = new MockCachingAuthorizationInterceptor();
+        cache.Seed("test", expiredHeaders);
+
+        var authentication = new MockCountingAuthenticationHandler(TimeSpan.FromMilliseconds(200));
+        var strategy = CreateStrategy(cache);
+
+        //Act
+        var results = await Task.WhenAll(Enumerable.Range(0, 25)
+            .Select(_ => Task.Run(async () => await strategy.UpdateHeadersAsync("test", expiredHeaders, authentication, null, CancellationToken.None))));
+
+        //Assert
+        Assert.Equal(1, authentication.Calls);
+        Assert.All(results, headers => Assert.NotNull(headers));
+        Assert.All(results, headers => Assert.NotSame(expiredHeaders, headers));
+    }
+
+    [Fact]
+    public async Task UpdateHeadersAsync_WithConcurrentCallers_AndCacheStillHoldingRejectedHeaders_ShouldReauthenticate()
+    {
+        //Arrange
+        var expiredHeaders = MockAuthorizationHeaders.CreateHeaders();
+        var cache = new MockCachingAuthorizationInterceptor(readOnly: true);
+        cache.Seed("test", expiredHeaders);
+
+        var authentication = new MockCountingAuthenticationHandler(TimeSpan.FromMilliseconds(20));
+        var strategy = CreateStrategy(cache);
+
+        //Act
+        var results = await Task.WhenAll(Enumerable.Range(0, 5)
+            .Select(_ => Task.Run(async () => await strategy.UpdateHeadersAsync("test", expiredHeaders, authentication, null, CancellationToken.None))));
+
+        //Assert
+        Assert.Equal(5, authentication.Calls);
+        Assert.All(results, headers => Assert.NotSame(expiredHeaders, headers));
+    }
+
+    private static AuthorizationInterceptorStrategy CreateStrategy(params IAuthorizationInterceptor[] interceptors)
+    {
+        var loggerFactory = Substitute.For<ILoggerFactory>();
+        loggerFactory.CreateLogger("AuthorizationInterceptorStrategy").Returns(Substitute.For<ILogger>());
+
+        return new AuthorizationInterceptorStrategy(loggerFactory, interceptors, new KeyedAsyncLock());
     }
 }

@@ -16,7 +16,7 @@ A lightweight .NET library that automatically manages HTTP authentication header
 - **OAuth2 refresh token support** — reuse existing tokens via `RefreshToken` flow
 - **Custom header support** — return any key-value authorization headers
 - **Multiple cache backends** — in-memory, distributed (Redis/NCache), or hybrid caching
-- **Distributed concurrency-safe** — safe for multi-instance/Kubernetes deployments
+- **Deduplicated authentication** — concurrent requests share a single authentication call per cache key
 - **Extensible interceptor chain** — compose your own caching and logging strategies
 - **Multi-target framework support** — .NET 8+
 
@@ -106,7 +106,15 @@ builder.Services.AddHttpClient("TargetApi")
     .ConfigureHttpClient(c => c.BaseAddress = new Uri("https://targetapi.com"));
 ```
 
-This uses an in-memory cache first (fastest), falls back to distributed cache, then calls the authentication handler only when no cached token exists. This ensures all instances share the same token and avoids redundant login calls.
+This uses an in-memory cache first (fastest), falls back to distributed cache, then calls the authentication handler only when no cached token exists. Instances share the same token through the distributed layer, which avoids redundant login calls.
+
+### Concurrency
+
+When several requests need headers at the same time and none are cached, only one of them calls the authentication handler. The others wait, then reuse whatever it stored in the interceptors. The same applies after an unauthenticated response: a request only refreshes the token if no one else has already replaced the one that was rejected.
+
+This deduplication is scoped to the process, and to the `HttpClient` name plus the `CacheKeyBuilder` suffix — different cache keys never block each other. Across instances it is the shared cache, not a lock, that keeps authentication calls down: with a cold distributed cache, two instances can still authenticate at the same time. If your provider invalidates the previous token on every issuance, keep that in mind when scaling out.
+
+Deduplication requires at least one cache interceptor. Without one there is nothing to share, so every request authenticates on its own.
 
 ## Options & Customization
 
