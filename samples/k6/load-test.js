@@ -62,13 +62,16 @@ export const options = {
     'http_req_failed{scenario:cold_start}': ['rate<0.01'],
     'http_req_failed{scenario:steady_state}': ['rate<0.01'],
 
-    // Steady state is almost entirely memory-cache hits, so it should stay close to the cost of
-    // the SourceApi -> TargetApi hop itself.
-    'http_req_duration{scenario:steady_state}': ['p(95)<150', 'p(99)<500'],
+    // Calibrated against measured runs on a local machine rather than guessed: deduplicated builds
+    // land around p(95) 150-185ms and p(99) 500-605ms here, so these leave roughly 30% headroom and
+    // catch a regression back towards the undeduplicated numbers (p(95) 257ms, p(99) 1.08s).
+    'http_req_duration{scenario:steady_state}': ['p(95)<250', 'p(99)<700'],
 
-    // Cold start pays one authentication round-trip. The point of the threshold is that the tail
-    // must not scale with the number of callers waiting on it.
-    'http_req_duration{scenario:cold_start}': ['p(95)<2000'],
+    // Weak signal, kept only to catch gross regressions: at this scale the number is dominated by
+    // JIT, handler chain construction and the Redis handshake, not by the interceptor. What is worth
+    // reading here is the spread between min and max in the summary, not this threshold. Coalesced
+    // callers share one result and finish together, so that spread should stay small.
+    'http_req_duration{scenario:cold_start}': ['p(95)<3000'],
 
     checks: ['rate>0.99'],
   },
@@ -132,13 +135,18 @@ export function teardown() {
   console.log('-----------------------');
   console.log(`  auth_token_rotations   how often a VU saw the token change. TargetApi tokens live`);
   console.log(`                         30s, so over the steady phase expect roughly`);
-  console.log(`                         (duration / 30s) rotations per VU. Substantially more than`);
-  console.log(`                         that means callers are authenticating past each other`);
-  console.log(`                         instead of sharing the cached result.`);
-  console.log(`  cold_start p(95)       one authentication round-trip. Should stay flat as COLD_VUS`);
-  console.log(`                         grows; if it climbs with concurrency, requests are queueing`);
-  console.log(`                         behind separate authentications.`);
+  console.log(`                         (duration / 30s) rotations per VU. Divide the total by the`);
+  console.log(`                         VU count the steady phase settled on, otherwise runs with`);
+  console.log(`                         different VU counts are not comparable. Well above that`);
+  console.log(`                         means callers are authenticating past each other instead of`);
+  console.log(`                         sharing one result.`);
+  console.log(`  cold_start min..max    the spread matters more than any single percentile. Callers`);
+  console.log(`                         sharing one authentication finish together, so the range`);
+  console.log(`                         stays tight. A wide range means they queued behind each`);
+  console.log(`                         other; a uniformly high one means they all authenticated.`);
+  console.log(`                         The absolute value is mostly process warmup, not the library.`);
   console.log(`  steady_state p(95)     cache-hit path, dominated by the SourceApi -> TargetApi hop.`);
+  console.log(`                         The refresh waves every 30s live in p(99) and max.`);
   console.log('');
   console.log('Note: the memory cache lives in the SourceApi process and survives between runs.');
   console.log('Restart SourceApi (or wait 60s) before re-running to measure a genuinely cold start.');

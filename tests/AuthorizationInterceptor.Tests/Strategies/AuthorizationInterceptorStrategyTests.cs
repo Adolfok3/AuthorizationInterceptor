@@ -26,7 +26,7 @@ public class AuthorizationInterceptorStrategyTests
         _logger.IsEnabled(LogLevel.Debug).Returns(true);
         var loggerFactory = Substitute.For<ILoggerFactory>();
         loggerFactory.CreateLogger("AuthorizationInterceptorStrategy").Returns(_logger);
-        _stategy = new AuthorizationInterceptorStrategy(loggerFactory, [_interceptor1, _interceptor2, _interceptor3], new KeyedAsyncLock());
+        _stategy = new AuthorizationInterceptorStrategy(loggerFactory, [_interceptor1, _interceptor2, _interceptor3], new AuthenticationSingleFlight());
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class AuthorizationInterceptorStrategyTests
         Func<Task> act = async () => await _stategy.GetHeadersAsync("test", authentication, cancellationToken.Token);
 
         //Assert
-        await Assert.ThrowsAsync<OperationCanceledException>(act);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(act);
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public class AuthorizationInterceptorStrategyTests
 
         var loggerFactory = Substitute.For<ILoggerFactory>();
         loggerFactory.CreateLogger("AuthorizationInterceptorStrategy").Returns(_logger);
-        var strategy = new AuthorizationInterceptorStrategy(loggerFactory, [], new KeyedAsyncLock());
+        var strategy = new AuthorizationInterceptorStrategy(loggerFactory, [], new AuthenticationSingleFlight());
 
         //Act
         var headers = await strategy.GetHeadersAsync("test_user-1", authentication, CancellationToken.None);
@@ -215,7 +215,7 @@ public class AuthorizationInterceptorStrategyTests
         Func<Task> act = async () => await _stategy.UpdateHeadersAsync("test", null, authentication, cancellationToken.Token);
 
         //Assert
-        await Assert.ThrowsAsync<OperationCanceledException>(act);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(act);
     }
 
     [Fact]
@@ -311,23 +311,45 @@ public class AuthorizationInterceptorStrategyTests
     }
 
     [Fact]
-    public async Task UpdateHeadersAsync_WithConcurrentCallers_AndCacheStillHoldingRejectedHeaders_ShouldReauthenticate()
+    public async Task UpdateHeadersAsync_WhenJoinedFlightIsNotNewerThanRejectedHeaders_ShouldReauthenticate()
     {
         //Arrange
+        // The shared authentication resolves to headers that predate the ones the target API rejected,
+        // which is what happens when the flight started before this caller got its 401. Callers that
+        // joined it must not settle for that generation.
+        var staleResult = MockAuthorizationHeaders.CreateHeaders();
+        await Task.Delay(20);
         var expiredHeaders = MockAuthorizationHeaders.CreateHeaders();
-        var cache = new MockCachingAuthorizationInterceptor(readOnly: true);
-        cache.Seed("test", expiredHeaders);
 
-        var authentication = new MockCountingAuthenticationHandler(TimeSpan.FromMilliseconds(20));
-        var strategy = CreateStrategy(cache);
+        var authentication = new MockCountingAuthenticationHandler(TimeSpan.FromMilliseconds(200), () => staleResult);
+        var strategy = CreateStrategy(new MockCachingAuthorizationInterceptor());
 
         //Act
         var results = await Task.WhenAll(Enumerable.Range(0, 5)
             .Select(_ => Task.Run(async () => await strategy.UpdateHeadersAsync("test", expiredHeaders, authentication, CancellationToken.None))));
 
         //Assert
-        Assert.Equal(5, authentication.Calls);
-        Assert.All(results, headers => Assert.NotSame(expiredHeaders, headers));
+        // Without the guard every caller would have settled for the single shared flight.
+        Assert.True(authentication.Calls > 1, $"expected the guard to force a re-authentication, got {authentication.Calls} call(s)");
+        Assert.All(results, headers => Assert.Same(staleResult, headers));
+    }
+
+    [Fact]
+    public async Task UpdateHeadersAsync_WithConcurrentCallers_AndNoHeadersGenerated_ShouldAuthenticateOnlyOnce()
+    {
+        //Arrange
+        // A handler returning null is a terminal answer, not a stale generation, so the callers that
+        // joined the flight must accept it instead of each retrying on its own.
+        var authentication = new MockCountingAuthenticationHandler(TimeSpan.FromMilliseconds(200), () => null);
+        var strategy = CreateStrategy(new MockCachingAuthorizationInterceptor());
+
+        //Act
+        var results = await Task.WhenAll(Enumerable.Range(0, 25)
+            .Select(_ => Task.Run(async () => await strategy.UpdateHeadersAsync("test", MockAuthorizationHeaders.CreateHeaders(), authentication, CancellationToken.None))));
+
+        //Assert
+        Assert.Equal(1, authentication.Calls);
+        Assert.All(results, Assert.Null);
     }
 
     private static AuthorizationInterceptorStrategy CreateStrategy(params IAuthorizationInterceptor[] interceptors)
@@ -335,6 +357,6 @@ public class AuthorizationInterceptorStrategyTests
         var loggerFactory = Substitute.For<ILoggerFactory>();
         loggerFactory.CreateLogger("AuthorizationInterceptorStrategy").Returns(Substitute.For<ILogger>());
 
-        return new AuthorizationInterceptorStrategy(loggerFactory, interceptors, new KeyedAsyncLock());
+        return new AuthorizationInterceptorStrategy(loggerFactory, interceptors, new AuthenticationSingleFlight());
     }
 }

@@ -13,6 +13,8 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - The `HttpClient` name and the `CacheKeyBuilder` suffix are now combined once, by the authorization handler, and travel through the interceptor chain as a single `key`. Interceptors no longer assemble the cache key themselves.
+- Concurrent authentications are now coalesced rather than serialized: callers arriving while one is already running await its result instead of waiting for a lock and then re-reading the cache. This removes one cache round-trip per waiting caller.
+- A shared authentication runs detached from any single caller's `CancellationToken`, so a caller that cancels no longer aborts the authentication the others are waiting for. Consequently, the `IAuthenticationHandler` of a coalesced authentication receives `CancellationToken.None`. Callers still observe their own token while waiting, but the exception they get is now `TaskCanceledException` instead of `OperationCanceledException`; code catching `OperationCanceledException` is unaffected, since the former derives from the latter.
 
 ### Breaking Changes
 

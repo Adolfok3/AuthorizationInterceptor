@@ -7,7 +7,9 @@ namespace AuthorizationInterceptor.Tests.Utils;
 /// Authentication handler that counts how many times it was invoked and takes a configurable amount of
 /// time, so concurrent callers reliably overlap.
 /// </summary>
-public class MockCountingAuthenticationHandler(TimeSpan delay) : IAuthenticationHandler
+/// <param name="resultFactory">When provided, supplies the result instead of freshly created headers.
+/// Lets a test hand back <c>null</c>, or headers that predate the ones being refreshed.</param>
+public class MockCountingAuthenticationHandler(TimeSpan delay, Func<AuthorizationHeaders?>? resultFactory = null) : IAuthenticationHandler
 {
     private int _calls;
 
@@ -18,6 +20,6 @@ public class MockCountingAuthenticationHandler(TimeSpan delay) : IAuthentication
         Interlocked.Increment(ref _calls);
         await Task.Delay(delay, cancellationToken);
 
-        return MockAuthorizationHeaders.CreateHeaders();
+        return resultFactory is null ? MockAuthorizationHeaders.CreateHeaders() : resultFactory();
     }
 }

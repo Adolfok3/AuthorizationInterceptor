@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AuthorizationInterceptor.Strategies;
 
-internal class AuthorizationInterceptorStrategy(ILoggerFactory loggerFactory, IAuthorizationInterceptor[] interceptors, KeyedAsyncLock authenticationLock)
+internal class AuthorizationInterceptorStrategy(ILoggerFactory loggerFactory, IAuthorizationInterceptor[] interceptors, AuthenticationSingleFlight singleFlight)
     : IAuthorizationInterceptorStrategy
 {
     private readonly ILogger _logger = loggerFactory.CreateLogger("AuthorizationInterceptorStrategy");
@@ -17,6 +17,8 @@ internal class AuthorizationInterceptorStrategy(ILoggerFactory loggerFactory, IA
 
         if (interceptors.Length == 0)
         {
+            // Nothing caches the result, so coalescing callers would only queue identical
+            // authentications instead of saving any.
             _logger.LogNoInterceptorUsed(key);
             return await AuthenticateAsync(key, null, authenticationHandler, cancellationToken);
         }
@@ -25,21 +27,15 @@ internal class AuthorizationInterceptorStrategy(ILoggerFactory loggerFactory, IA
         if (lookup.IsValid)
             return await UpdateHeadersInInterceptorsAsync(key, lookup.Index, lookup.Headers, cancellationToken);
 
-        using var handle = await authenticationLock.AcquireAsync(key, cancellationToken);
+        var flight = await singleFlight.RunAsync(
+            key,
+            () => AuthenticateAsync(key, lookup.Headers, authenticationHandler, CancellationToken.None).AsTask(),
+            cancellationToken);
 
-        if (handle.WasContended)
-        {
-            var refreshed = await LookupHeadersAsync(key, cancellationToken);
-            if (refreshed.IsValid)
-            {
-                _logger.LogHeadersRefreshedByConcurrentCaller(key);
-                return await UpdateHeadersInInterceptorsAsync(key, refreshed.Index, refreshed.Headers, cancellationToken);
-            }
+        if (flight.Joined)
+            _logger.LogHeadersRefreshedByConcurrentCaller(key);
 
-            lookup = refreshed;
-        }
-
-        return await AuthenticateAsync(key, lookup.Headers, authenticationHandler, cancellationToken);
+        return flight.Headers;
     }
 
     public async ValueTask<AuthorizationHeaders?> UpdateHeadersAsync(string key, AuthorizationHeaders? expiredHeaders, IAuthenticationHandler authenticationHandler, CancellationToken cancellationToken)
@@ -49,17 +45,20 @@ internal class AuthorizationInterceptorStrategy(ILoggerFactory loggerFactory, IA
         if (interceptors.Length == 0)
             return await AuthenticateAsync(key, expiredHeaders, authenticationHandler, cancellationToken);
 
-        using var handle = await authenticationLock.AcquireAsync(key, cancellationToken);
+        var flight = await singleFlight.RunAsync(
+            key,
+            () => AuthenticateAsync(key, expiredHeaders, authenticationHandler, CancellationToken.None).AsTask(),
+            cancellationToken);
 
-        if (handle.WasContended)
-        {
-            var refreshed = await LookupHeadersAsync(key, cancellationToken);
-            if (refreshed.IsValid && IsNewerThan(refreshed.Headers, expiredHeaders))
-            {
-                _logger.LogHeadersRefreshedByConcurrentCaller(key);
-                return await UpdateHeadersInInterceptorsAsync(key, refreshed.Index, refreshed.Headers, cancellationToken);
-            }
-        }
+        if (flight.Joined)
+            _logger.LogHeadersRefreshedByConcurrentCaller(key);
+
+        // A joined flight may have started before this caller's headers were rejected, in which case it
+        // produced the very generation the target API just refused, and only then is a fresh one needed.
+        // A flight that produced nothing is a terminal answer rather than a stale one: retrying it per
+        // caller would undo the coalescing precisely when the authentication provider is struggling.
+        if (!flight.Joined || flight.Headers == null || IsNewerThan(flight.Headers, expiredHeaders))
+            return flight.Headers;
 
         return await AuthenticateAsync(key, expiredHeaders, authenticationHandler, cancellationToken);
     }

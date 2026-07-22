@@ -71,7 +71,7 @@ public static class HttpClientBuilderExtensions
         options?.Invoke(optionsInstance);
 
         builder.Services.AddHttpContextAccessor();
-        builder.Services.TryAddSingleton<KeyedAsyncLock>();
+        builder.Services.TryAddSingleton<AuthenticationSingleFlight>();
 
         // Interceptor dependencies have to be registered here, while the service collection is still
         // mutable and before any interceptor is activated. The handler factory below only runs when the
@@ -95,7 +95,7 @@ public static class HttpClientBuilderExtensions
         return new AuthorizationInterceptorStrategy(
             provider.GetRequiredService<ILoggerFactory>(),
             interceptors,
-            provider.GetRequiredService<KeyedAsyncLock>());
+            provider.GetRequiredService<AuthenticationSingleFlight>());
     }
 }
 
