@@ -1,4 +1,5 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using System.Collections.Concurrent;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,9 +23,9 @@ app.MapPost("/auth", ([FromHeader(Name = "x-mycustom-header")]string? myCustomHe
         AccessToken = Guid.NewGuid().ToString(),
         RefreshToken = Guid.NewGuid().ToString(),
         TokenType = "Bearer",
-        ExpiresIn = 30,
-        RefreshTokenExpiresIn = 60,
-        ExpiresAt = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30),
+        ExpiresIn = 15,
+        RefreshTokenExpiresIn = 30,
+        ExpiresAt = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(15),
     };
 
     users.Users.Add(user);
@@ -50,9 +51,9 @@ app.MapPost("/refresh", ([FromHeader(Name = "x-mycustom-header")]string? myCusto
         AccessToken = Guid.NewGuid().ToString(),
         RefreshToken = Guid.NewGuid().ToString(),
         TokenType = "Bearer",
-        ExpiresIn = 30,
-        RefreshTokenExpiresIn = 60,
-        ExpiresAt = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30)
+        ExpiresIn = 15,
+        RefreshTokenExpiresIn = 30,
+        ExpiresAt = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(15)
     };
 
     users.Users.Add(user);
@@ -77,8 +78,11 @@ app.MapGet("/data", (HttpRequest request, UserContainer users, ILoggerFactory lo
 })
 .WithName("data");
 
-
 app.Run();
+
+public record TokenStats(
+    [property: JsonPropertyName("generated_tokens")] int GeneratedTokens,
+    [property: JsonPropertyName("distinct_tokens")] int DistinctTokens);
 
 public class User
 {
@@ -106,5 +110,5 @@ public class User
 
 public class UserContainer
 {
-    public List<User> Users { get; set; } = [];
+    public ConcurrentBag<User> Users { get; } = [];
 }
