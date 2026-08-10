@@ -73,9 +73,6 @@ public static class HttpClientBuilderExtensions
         builder.Services.AddHttpContextAccessor();
         builder.Services.TryAddSingleton<AuthenticationSingleFlight>();
 
-        // Interceptor dependencies have to be registered here, while the service collection is still
-        // mutable and before any interceptor is activated. The handler factory below only runs when the
-        // first client is created, and by then the provider has already been built.
         foreach (var (_, dependencies) in optionsInstance.Interceptors)
             dependencies?.Invoke(builder.Services);
 
