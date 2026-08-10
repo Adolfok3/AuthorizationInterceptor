@@ -9,13 +9,11 @@ internal sealed class HybridCacheAuthorizationInterceptor(Microsoft.Extensions.C
 {
     private const string CacheKey = "authorization_interceptor_hybrid_cache_HybridCacheAuthorizationInterceptor_{0}";
 
-    public async ValueTask<AuthorizationHeaders?> GetHeadersAsync(string name, CancellationToken cancellationToken, string? cacheKeySuffix = null)
+    public async ValueTask<AuthorizationHeaders?> GetHeadersAsync(string key, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var key = MountCacheKey(name, cacheKeySuffix);
-
-        var data = await hybridCache.GetOrCreateAsync(key,
+        var data = await hybridCache.GetOrCreateAsync(string.Format(CacheKey, key),
             _ => ValueTask.FromResult<string?>(null),
             new HybridCacheEntryOptions { Flags = HybridCacheEntryFlags.DisableLocalCacheWrite | HybridCacheEntryFlags.DisableDistributedCacheWrite },
             cancellationToken: cancellationToken);
@@ -23,14 +21,12 @@ internal sealed class HybridCacheAuthorizationInterceptor(Microsoft.Extensions.C
         return string.IsNullOrEmpty(data) ? null : AuthorizationHeadersJsonSerializer.Deserialize(data);
     }
 
-    public async ValueTask UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders, CancellationToken cancellationToken, string? cacheKeySuffix = null)
+    public async ValueTask UpdateHeadersAsync(string key, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         if (newHeaders == null)
             return;
-
-        var key = MountCacheKey(name, cacheKeySuffix);
 
         var data = AuthorizationHeadersJsonSerializer.Serialize(newHeaders);
         var options = new HybridCacheEntryOptions
@@ -39,11 +35,6 @@ internal sealed class HybridCacheAuthorizationInterceptor(Microsoft.Extensions.C
             LocalCacheExpiration = newHeaders.GetRealExpiration(),
         };
 
-        await hybridCache.SetAsync(key, data, options, cancellationToken: cancellationToken);
+        await hybridCache.SetAsync(string.Format(CacheKey, key), data, options, cancellationToken: cancellationToken);
     }
-
-    private static string MountCacheKey(string name, string? cacheKeySuffix)
-        => string.IsNullOrEmpty(cacheKeySuffix)
-                    ? string.Format(CacheKey, name)
-                    : $"{string.Format(CacheKey, name)}_{cacheKeySuffix}";
 }

@@ -243,12 +243,12 @@ public class TargetApiWithDataAuthClass : IAuthenticationHandler
 
 public class CustomInterceptor1 : IAuthorizationInterceptor
 {
-    public ValueTask<AuthorizationHeaders?> GetHeadersAsync(string name, CancellationToken cancellationToken, string? cacheKeySuffix = null)
+    public ValueTask<AuthorizationHeaders?> GetHeadersAsync(string key, CancellationToken cancellationToken)
     {
         return ValueTask.FromResult<AuthorizationHeaders?>(null);
     }
 
-    public ValueTask UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders, CancellationToken cancellationToken, string? cacheKeySuffix = null)
+    public ValueTask UpdateHeadersAsync(string key, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders, CancellationToken cancellationToken)
     {
         return ValueTask.CompletedTask;
     }
@@ -256,12 +256,12 @@ public class CustomInterceptor1 : IAuthorizationInterceptor
 
 public class CustomInterceptor2 : IAuthorizationInterceptor
 {
-    public ValueTask<AuthorizationHeaders?> GetHeadersAsync(string name, CancellationToken cancellationToken, string? cacheKeySuffix = null)
+    public ValueTask<AuthorizationHeaders?> GetHeadersAsync(string key, CancellationToken cancellationToken)
     {
         return ValueTask.FromResult<AuthorizationHeaders?>(null);
     }
 
-    public ValueTask UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders, CancellationToken cancellationToken, string? cacheKeySuffix = null)
+    public ValueTask UpdateHeadersAsync(string key, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders, CancellationToken cancellationToken)
     {
         return ValueTask.CompletedTask;
     }
@@ -269,12 +269,12 @@ public class CustomInterceptor2 : IAuthorizationInterceptor
 
 public class CustomInterceptor3 : IAuthorizationInterceptor
 {
-    public ValueTask<AuthorizationHeaders?> GetHeadersAsync(string name, CancellationToken cancellationToken, string? cacheKeySuffix = null)
+    public ValueTask<AuthorizationHeaders?> GetHeadersAsync(string key, CancellationToken cancellationToken)
     {
         return ValueTask.FromResult<AuthorizationHeaders?>(null);
     }
 
-    public ValueTask UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders, CancellationToken cancellationToken, string? cacheKeySuffix = null)
+    public ValueTask UpdateHeadersAsync(string key, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders, CancellationToken cancellationToken)
     {
         return ValueTask.CompletedTask;
     }

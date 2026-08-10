@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [7.0.0] - 2026-07-21
+
+### Fixed
+
+- Interceptor dependencies passed to `UseCustomInterceptor` / `UseMemoryCacheInterceptor` are now registered at registration time. They used to be registered inside the `HttpClient` handler factory, which runs after the service provider is built: the interceptor was activated before the callback ran, and the callback itself threw `InvalidOperationException: The service collection cannot be modified because it is read-only` on any new registration.
+- Concurrent requests that find no valid headers now perform a single authentication per cache key, instead of one authentication per in-flight request. Callers that had to wait re-check the interceptors and reuse whatever the winner cached.
+- After an unauthenticated response, a caller no longer re-authenticates if another caller already replaced the rejected headers, determined by comparing `AuthorizationHeaders.AuthenticatedAt`.
+
+### Changed
+
+- The `HttpClient` name and the `CacheKeyBuilder` suffix are now combined once, by the authorization handler, and travel through the interceptor chain as a single `key`. Interceptors no longer assemble the cache key themselves.
+- Concurrent authentications are now coalesced rather than serialized: callers arriving while one is already running await its result instead of waiting for a lock and then re-reading the cache. This removes one cache round-trip per waiting caller.
+- A shared authentication runs detached from any single caller's `CancellationToken`, so a caller that cancels no longer aborts the authentication the others are waiting for. Consequently, the `IAuthenticationHandler` of a coalesced authentication receives `CancellationToken.None`. Callers still observe their own token while waiting, but the exception they get is now `TaskCanceledException` instead of `OperationCanceledException`; code catching `OperationCanceledException` is unaffected, since the former derives from the latter.
+
+### Breaking Changes
+
+- `IAuthorizationInterceptor.GetHeadersAsync` and `IAuthorizationInterceptor.UpdateHeadersAsync` no longer take a `cacheKeySuffix` parameter, and their first parameter is now the combined `key` rather than the `HttpClient` name. Custom interceptor implementations must update their signatures:
+
+  ```csharp
+  // before
+  ValueTask<AuthorizationHeaders?> GetHeadersAsync(string name, CancellationToken ct, string? cacheKeySuffix = null);
+  ValueTask UpdateHeadersAsync(string name, AuthorizationHeaders? expired, AuthorizationHeaders? updated, CancellationToken ct, string? cacheKeySuffix = null);
+
+  // after
+  ValueTask<AuthorizationHeaders?> GetHeadersAsync(string key, CancellationToken ct);
+  ValueTask UpdateHeadersAsync(string key, AuthorizationHeaders? expired, AuthorizationHeaders? updated, CancellationToken ct);
+  ```
+
+  Implementations that combined `name` and `cacheKeySuffix` themselves should now use `key` directly. Cache keys produced by the bundled MemoryCache, DistributedCache, and HybridCache interceptors are byte-identical to 6.x, so cached authorization headers survive the upgrade.
+
 ## [6.0.1] - 2026-06-16
 
 ### Fixed

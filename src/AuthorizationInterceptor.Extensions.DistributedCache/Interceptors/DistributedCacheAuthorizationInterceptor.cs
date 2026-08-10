@@ -9,25 +9,21 @@ internal sealed class DistributedCacheAuthorizationInterceptor(IDistributedCache
 {
     private const string CacheKey = "authorization_interceptor_distributed_cache_DistributedCacheAuthorizationInterceptor_{0}";
 
-    public async ValueTask<AuthorizationHeaders?> GetHeadersAsync(string name, CancellationToken cancellationToken, string? cacheKeySuffix = null)
+    public async ValueTask<AuthorizationHeaders?> GetHeadersAsync(string key, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var key = MountCacheKey(name, cacheKeySuffix);
-
-        var data = await cache.GetStringAsync(key, cancellationToken);
+        var data = await cache.GetStringAsync(string.Format(CacheKey, key), cancellationToken);
 
         return string.IsNullOrEmpty(data) ? null : AuthorizationHeadersJsonSerializer.Deserialize(data);
     }
 
-    public async ValueTask UpdateHeadersAsync(string name, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders, CancellationToken cancellationToken, string? cacheKeySuffix = null)
+    public async ValueTask UpdateHeadersAsync(string key, AuthorizationHeaders? expiredHeaders, AuthorizationHeaders? newHeaders, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         if (newHeaders == null)
             return;
-
-        var key = MountCacheKey(name, cacheKeySuffix);
 
         var data = AuthorizationHeadersJsonSerializer.Serialize(newHeaders);
         var options = new DistributedCacheEntryOptions
@@ -35,11 +31,6 @@ internal sealed class DistributedCacheAuthorizationInterceptor(IDistributedCache
             AbsoluteExpirationRelativeToNow = newHeaders.GetRealExpiration()
         };
 
-        await cache.SetStringAsync(key, data, options, cancellationToken);
+        await cache.SetStringAsync(string.Format(CacheKey, key), data, options, cancellationToken);
     }
-
-    private static string MountCacheKey(string name, string? cacheKeySuffix)
-        => string.IsNullOrEmpty(cacheKeySuffix)
-                    ? string.Format(CacheKey, name)
-                    : $"{string.Format(CacheKey, name)}_{cacheKeySuffix}";
 }

@@ -111,4 +111,45 @@ public class HttpClientBuilderExtensionsTests
         // Assert
         Assert.Contains(services, descriptor => descriptor.ServiceType == typeof(IHttpContextAccessor));
     }
+
+    [Fact]
+    public void AddAuthorizationInterceptorHandler_WithInterceptorDependencies_ShouldRegisterThemAtRegistrationTime()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddHttpClient("Test")
+            .AddAuthorizationInterceptorHandler<MockAuthorizationInterceptorAuthenticationHandler>(options =>
+            {
+                options.UseCustomInterceptor<MockDependentAuthorizationInterceptor>(func => func.AddSingleton<MockInterceptorDependency>());
+            });
+
+        // Assert
+        Assert.Contains(services, descriptor => descriptor.ServiceType == typeof(MockInterceptorDependency));
+    }
+
+    [Fact]
+    public void AddAuthorizationInterceptorHandler_WithInterceptorDependencies_ShouldCreateClientAfterServiceCollectionIsReadOnly()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddHttpClient("Test")
+            .AddAuthorizationInterceptorHandler<MockAuthorizationInterceptorAuthenticationHandler>(options =>
+            {
+                options.UseCustomInterceptor<MockDependentAuthorizationInterceptor>(func => func.AddSingleton<MockInterceptorDependency>());
+            });
+
+        var provider = services.BuildServiceProvider();
+
+        // The generic host seals the collection once the provider is built, so anything the interceptors
+        // need must already be registered by the time the handler chain is created.
+        services.MakeReadOnly();
+
+        // Act
+        var act = () => provider.GetRequiredService<IHttpClientFactory>().CreateClient("Test");
+
+        // Assert
+        Assert.Null(Record.Exception(act));
+    }
 }
