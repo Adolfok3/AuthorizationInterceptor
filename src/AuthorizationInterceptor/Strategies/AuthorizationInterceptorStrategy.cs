@@ -11,8 +11,6 @@ internal class AuthorizationInterceptorStrategy(ILoggerFactory loggerFactory, IA
 {
     private readonly ILogger _logger = loggerFactory.CreateLogger("AuthorizationInterceptorStrategy");
 
-    // Resolved once because the interceptor array is fixed: the log arguments are evaluated before the
-    // call, so leaving GetType().Name inline would pay for it on every lookup even with logging off.
     private readonly string[] _interceptorNames = [.. interceptors.Select(interceptor => interceptor.GetType().Name)];
 
     public async ValueTask<AuthorizationHeaders?> GetHeadersAsync(string key, IAuthenticationHandler authenticationHandler, CancellationToken cancellationToken)
@@ -21,8 +19,6 @@ internal class AuthorizationInterceptorStrategy(ILoggerFactory loggerFactory, IA
 
         if (interceptors.Length == 0)
         {
-            // Nothing caches the result, so coalescing callers would only queue identical
-            // authentications instead of saving any.
             _logger.LogNoInterceptorUsed(key);
             return await AuthenticateAsync(key, null, authenticationHandler, cancellationToken);
         }
@@ -57,21 +53,12 @@ internal class AuthorizationInterceptorStrategy(ILoggerFactory loggerFactory, IA
         if (flight.Joined)
             _logger.LogHeadersRefreshedByConcurrentCaller(key);
 
-        // A joined flight may have started before this caller's headers were rejected, in which case it
-        // produced the very generation the target API just refused, and only then is a fresh one needed.
-        // A flight that produced nothing is a terminal answer rather than a stale one: retrying it per
-        // caller would undo the coalescing precisely when the authentication provider is struggling.
         if (!flight.Joined || flight.Headers == null || IsNewerThan(flight.Headers, expiredHeaders))
             return flight.Headers;
 
         return await AuthenticateAsync(key, expiredHeaders, authenticationHandler, cancellationToken);
     }
 
-    /// <summary>
-    /// Walks the interceptors in order and returns the first headers found, along with the index they
-    /// came from and whether they are still valid. Expired headers are returned as well, so they can be
-    /// handed to the authentication handler for a refresh token flow.
-    /// </summary>
     private async ValueTask<HeadersLookup> LookupHeadersAsync(string key, CancellationToken cancellationToken)
     {
         for (var index = 0; index < interceptors.Length; index++)
@@ -158,10 +145,6 @@ internal class AuthorizationInterceptorStrategy(ILoggerFactory loggerFactory, IA
         return headers;
     }
 
-    /// <summary>
-    /// Tells whether <paramref name="cached"/> was authenticated after <paramref name="expiredHeaders"/>,
-    /// meaning another caller already replaced the headers that were just rejected by the target API.
-    /// </summary>
     private static bool IsNewerThan(AuthorizationHeaders? cached, AuthorizationHeaders? expiredHeaders)
         => cached != null && (expiredHeaders == null || cached.AuthenticatedAt > expiredHeaders.AuthenticatedAt);
 

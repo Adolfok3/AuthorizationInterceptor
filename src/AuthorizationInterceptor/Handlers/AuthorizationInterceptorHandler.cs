@@ -39,8 +39,6 @@ internal class AuthorizationInterceptorHandler : DelegatingHandler
 
     private async Task<HttpResponseMessage> SendWithInterceptorAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        // This is the only place that knows both halves of the identity, so it builds the key the rest
-        // of the pipeline works with, and keeps logging them separately.
         var cacheKeySuffix = GetCacheKeySuffix();
         var key = BuildKey(cacheKeySuffix);
 
