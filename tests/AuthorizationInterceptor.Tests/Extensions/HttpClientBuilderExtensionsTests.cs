@@ -1,5 +1,7 @@
 ﻿using AuthorizationInterceptor.Extensions;
+using AuthorizationInterceptor.Extensions.Abstractions.Options;
 using AuthorizationInterceptor.Tests.Utils;
+using Medallion.Threading;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -127,6 +129,50 @@ public class HttpClientBuilderExtensionsTests
 
         // Assert
         Assert.Contains(services, descriptor => descriptor.ServiceType == typeof(MockInterceptorDependency));
+    }
+
+    [Fact]
+    public void AddAuthorizationInterceptorHandler_WithDistributedLockMode_AndNoProvider_ShouldThrowWhenCreatingClient()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddHttpClient("Test")
+            .AddAuthorizationInterceptorHandler<MockAuthorizationInterceptorAuthenticationHandler>(options =>
+            {
+                options.LockMode = AuthenticationLockMode.Distributed;
+            });
+
+        var provider = services.BuildServiceProvider();
+        var httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
+
+        // Act
+        var act = () => httpClientFactory.CreateClient("Test");
+
+        // Assert
+        var exception = Assert.Throws<InvalidOperationException>(act);
+        Assert.Contains("IDistributedLockProvider", exception.Message);
+    }
+
+    [Fact]
+    public void AddAuthorizationInterceptorHandler_WithDistributedLockMode_AndProviderRegistered_ShouldBuildServiceProviderSuccessfully()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddSingleton(Substitute.For<IDistributedLockProvider>());
+        services.AddHttpClient("Test")
+            .AddAuthorizationInterceptorHandler<MockAuthorizationInterceptorAuthenticationHandler>(options =>
+            {
+                options.LockMode = AuthenticationLockMode.Local | AuthenticationLockMode.Distributed;
+                options.DistributedLockTimeout = TimeSpan.FromSeconds(10);
+            });
+
+        // Act
+        var provider = services.BuildServiceProvider();
+        var httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
+        var act = () => httpClientFactory.CreateClient("Test");
+
+        // Assert
+        Assert.Null(Record.Exception(act));
     }
 
     [Fact]
