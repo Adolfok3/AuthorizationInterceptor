@@ -17,6 +17,7 @@ A lightweight .NET library that automatically manages HTTP authentication header
 - **Custom header support** — return any key-value authorization headers
 - **Multiple cache backends** — in-memory, distributed (Redis/NCache), or hybrid caching
 - **Deduplicated authentication** — concurrent requests share a single authentication call per cache key
+- **Local & distributed locking** — coalesce authentication within an instance, and optionally across instances via `DistributedLock`
 - **Extensible interceptor chain** — compose your own caching and logging strategies
 - **Multi-target framework support** — .NET 8+
 
@@ -112,9 +113,48 @@ This uses an in-memory cache first (fastest), falls back to distributed cache, t
 
 When several requests need headers at the same time and none are cached, only one of them calls the authentication handler. The others wait, then reuse whatever it stored in the interceptors. The same applies after an unauthenticated response: a request only refreshes the token if no one else has already replaced the one that was rejected.
 
-This deduplication is scoped to the process, and to the `HttpClient` name plus the `CacheKeyBuilder` suffix — different cache keys never block each other. Across instances it is the shared cache, not a lock, that keeps authentication calls down: with a cold distributed cache, two instances can still authenticate at the same time. If your provider invalidates the previous token on every issuance, keep that in mind when scaling out.
+This deduplication is a **local lock** (`LockMode.Local`, the default), scoped to the process and to the `HttpClient` name plus the `CacheKeyBuilder` suffix — different cache keys never block each other. By default, across instances it is the shared cache, not a lock, that keeps authentication calls down: with a cold distributed cache, two instances can still authenticate at the same time. If your provider invalidates the previous token on every issuance, enable a [distributed lock](#locking-across-instances) when scaling out.
 
 Deduplication requires at least one cache interceptor. Without one there is nothing to share, so every request authenticates on its own.
+
+### Locking across instances
+
+Set `LockMode` to control how concurrent authentications are serialized. It is an `[Flags]` enum, so the local and distributed scopes can be combined:
+
+| Mode                              | Prevents concurrent authentication…            |
+| --------------------------------- | ---------------------------------------------- |
+| `AuthenticationLockMode.None`     | not at all                                     |
+| `AuthenticationLockMode.Local`    | within a single instance (default)             |
+| `AuthenticationLockMode.Distributed` | across multiple instances                   |
+| `Local \| Distributed`            | both (recommended when scaling out)            |
+
+The distributed lock builds on [DistributedLock.Core](https://www.nuget.org/packages/DistributedLock.Core), which is only the abstraction — you choose and register the provider (Redis, SQL Server, Postgres, Azure, FileSystem, …). Install the provider package you want and register its `IDistributedLockProvider` as a singleton:
+
+```
+dotnet add package DistributedLock.Redis
+```
+
+```csharp
+using Medallion.Threading;
+using Medallion.Threading.Redis;
+using StackExchange.Redis;
+
+var multiplexer = ConnectionMultiplexer.Connect("localhost:6379");
+builder.Services.AddSingleton<IDistributedLockProvider>(_ =>
+    new RedisDistributedSynchronizationProvider(multiplexer.GetDatabase()));
+
+builder.Services.AddHttpClient("TargetApi")
+    .AddAuthorizationInterceptorHandler<TargetApiAuth>(options =>
+    {
+        options.UseHybridCacheInterceptor();
+        options.LockMode = AuthenticationLockMode.Local | AuthenticationLockMode.Distributed;
+        options.DistributedLockTimeout = TimeSpan.FromSeconds(30); // optional; null waits indefinitely
+    });
+```
+
+With the distributed lock enabled, only one instance authenticates for a given key at a time. After acquiring the lock, the interceptor re-checks the shared cache (double-checked locking): if another instance already refreshed the headers while this one was waiting, it adopts them and skips the authentication call entirely. Pair it with a distributed (or hybrid) cache interceptor so there is a shared cache for that re-check to hit.
+
+If `LockMode` includes `Distributed` but no `IDistributedLockProvider` is registered, creating the `HttpClient` throws `InvalidOperationException`.
 
 ## Options & Customization
 
