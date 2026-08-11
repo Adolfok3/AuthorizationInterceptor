@@ -27,6 +27,22 @@ public class AuthorizationInterceptorOptions : IAuthorizationInterceptorOptions
     public Func<IHttpContextAccessor, string?>? CacheKeyBuilder { get; set; }
 
     /// <summary>
+    /// Defines how concurrent authentication attempts against the target API are serialized.
+    /// <see cref="AuthenticationLockMode.Local"/> prevents concurrent authentication within a single instance (single-flight),
+    /// while <see cref="AuthenticationLockMode.Distributed"/> prevents it across multiple instances.
+    /// Default is <see cref="AuthenticationLockMode.Local"/>.
+    /// </summary>
+    public AuthenticationLockMode LockMode { get; set; } = AuthenticationLockMode.Local;
+
+    /// <summary>
+    /// The maximum time to wait to acquire the distributed lock when <see cref="AuthenticationLockMode.Distributed"/> is enabled.
+    /// If the lock cannot be acquired within this time, a <see cref="TimeoutException"/> is thrown.
+    /// Default is <c>null</c>, which waits indefinitely (respecting cancellation).
+    /// Ignored when <see cref="AuthenticationLockMode.Distributed"/> is not set.
+    /// </summary>
+    public TimeSpan? DistributedLockTimeout { get; set; }
+
+    /// <summary>
     /// Adds a custom interceptor to the interceptor sequence. Note that the interceptor addition sequence interferes with the headers query sequence.
     /// </summary>
     /// <typeparam name="T">Implementation class of type <see cref="IAuthorizationInterceptor"/></typeparam>

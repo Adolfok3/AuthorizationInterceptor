@@ -1,9 +1,11 @@
 ﻿using AuthorizationInterceptor.Extensions.Abstractions.Handlers;
 using AuthorizationInterceptor.Extensions.Abstractions.Interceptors;
+using AuthorizationInterceptor.Extensions.Abstractions.Options;
 using AuthorizationInterceptor.Handlers;
 using AuthorizationInterceptor.Options;
 using AuthorizationInterceptor.Strategies;
 using AuthorizationInterceptor.Utils;
+using Medallion.Threading;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -31,7 +33,7 @@ public static class HttpClientBuilderExtensions
             builder.Name,
             optionsInstance.UnauthenticatedPredicate,
             CreateAuthenticationHandler<T>(provider),
-            CreateStrategy(provider, optionsInstance.Interceptors),
+            CreateStrategy(provider, optionsInstance),
             provider.GetRequiredService<ILoggerFactory>(),
             provider.GetRequiredService<IHttpContextAccessor>(),
             optionsInstance.CacheKeyBuilder
@@ -56,7 +58,7 @@ public static class HttpClientBuilderExtensions
             builder.Name,
             optionsInstance.UnauthenticatedPredicate,
             authHandlerImpl.Invoke(provider),
-            CreateStrategy(provider, optionsInstance.Interceptors),
+            CreateStrategy(provider, optionsInstance),
             provider.GetRequiredService<ILoggerFactory>(),
             provider.GetRequiredService<IHttpContextAccessor>(),
             optionsInstance.CacheKeyBuilder
@@ -82,17 +84,24 @@ public static class HttpClientBuilderExtensions
     private static T CreateAuthenticationHandler<T>(IServiceProvider provider) where T : class, IAuthenticationHandler
         => ActivatorUtilities.CreateInstance<T>(provider);
 
-    private static AuthorizationInterceptorStrategy CreateStrategy(IServiceProvider provider, List<(Type interceptor, Func<IServiceCollection, IServiceCollection>? dependencies)> interceptorsToBuild)
+    private static AuthorizationInterceptorStrategy CreateStrategy(IServiceProvider provider, AuthorizationInterceptorOptions options)
     {
+        var interceptorsToBuild = options.Interceptors;
         var interceptors = new IAuthorizationInterceptor[interceptorsToBuild.Count];
 
         for (int index = 0; index < interceptorsToBuild.Count; index++)
-            interceptors[index] = (IAuthorizationInterceptor)ActivatorUtilities.CreateInstance(provider, interceptorsToBuild[index].interceptor);
+            interceptors[index] = (IAuthorizationInterceptor)ActivatorUtilities.CreateInstance(provider, interceptorsToBuild[index].Item1);
+
+        var authenticationLock = new AuthenticationLock(
+            options.LockMode,
+            provider.GetRequiredService<AuthenticationSingleFlight>(),
+            provider.GetService<IDistributedLockProvider>(),
+            options.DistributedLockTimeout);
 
         return new AuthorizationInterceptorStrategy(
             provider.GetRequiredService<ILoggerFactory>(),
             interceptors,
-            provider.GetRequiredService<AuthenticationSingleFlight>());
+            authenticationLock);
     }
 }
 
