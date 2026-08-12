@@ -4,11 +4,6 @@ using Medallion.Threading;
 
 namespace AuthorizationInterceptor.Utils;
 
-/// <summary>
-/// Coordinates how concurrent authentication attempts are serialized according to the configured
-/// <see cref="AuthenticationLockMode"/>: a local single-flight lock (concurrency within the instance)
-/// and/or a distributed lock (concurrency across multiple instances).
-/// </summary>
 internal sealed class AuthenticationLock
 {
     private const string LockNamePrefix = "authorizationinterceptor:";
@@ -29,11 +24,6 @@ internal sealed class AuthenticationLock
         _distributedLockTimeout = distributedLockTimeout;
     }
 
-    /// <summary>
-    /// Runs <paramref name="authenticate"/> under the configured locks. When the distributed lock is enabled,
-    /// <paramref name="revalidate"/> is invoked after the lock is acquired so a caller can adopt headers that a
-    /// concurrent instance may have already refreshed (double-checked locking), skipping the authentication.
-    /// </summary>
     public async ValueTask<AuthenticationLockResult> RunAsync(
         string key,
         Func<CancellationToken, Task<AuthorizationHeaders?>> authenticate,

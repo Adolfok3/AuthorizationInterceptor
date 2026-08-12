@@ -60,11 +60,6 @@ internal class AuthorizationInterceptorStrategy(ILoggerFactory loggerFactory, IA
             ct => RevalidateFromConcurrentInstanceAsync(key, expiredHeaders, ct).AsTask(),
             cancellationToken);
 
-    /// <summary>
-    /// Re-checks the interceptors after the distributed lock is acquired. If a concurrent instance already
-    /// refreshed the shared cache with newer headers, adopts and back-fills them so authentication is skipped.
-    /// Returns <c>null</c> when a fresh authentication is still required.
-    /// </summary>
     private async ValueTask<AuthorizationHeaders?> RevalidateFromConcurrentInstanceAsync(string key, AuthorizationHeaders? expiredHeaders, CancellationToken cancellationToken)
     {
         var lookup = await LookupHeadersAsync(key, cancellationToken);
