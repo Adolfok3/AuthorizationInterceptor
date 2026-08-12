@@ -67,6 +67,4 @@ internal sealed class AuthenticationLock
 
         return await revalidate(cancellationToken) ?? await authenticate(cancellationToken);
     }
-
-    internal readonly record struct AuthenticationLockResult(AuthorizationHeaders? Headers, bool Joined);
 }

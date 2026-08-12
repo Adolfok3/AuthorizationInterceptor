@@ -1,6 +1,5 @@
 ﻿using AuthorizationInterceptor.Extensions.Abstractions.Handlers;
 using AuthorizationInterceptor.Extensions.Abstractions.Interceptors;
-using AuthorizationInterceptor.Extensions.Abstractions.Options;
 using AuthorizationInterceptor.Handlers;
 using AuthorizationInterceptor.Options;
 using AuthorizationInterceptor.Strategies;

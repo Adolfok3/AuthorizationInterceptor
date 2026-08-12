@@ -5,7 +5,6 @@ using AuthorizationInterceptor.Strategies;
 using AuthorizationInterceptor.Tests.Utils;
 using AuthorizationInterceptor.Utils;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace AuthorizationInterceptor.Tests.Handlers;

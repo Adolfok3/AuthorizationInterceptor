@@ -53,7 +53,7 @@ internal class AuthorizationInterceptorStrategy(ILoggerFactory loggerFactory, IA
         return await AuthenticateAsync(key, expiredHeaders, authenticationHandler, cancellationToken);
     }
 
-    private ValueTask<AuthenticationLock.AuthenticationLockResult> RunWithLockAsync(string key, AuthorizationHeaders? expiredHeaders, IAuthenticationHandler authenticationHandler, CancellationToken cancellationToken)
+    private ValueTask<AuthenticationLockResult> RunWithLockAsync(string key, AuthorizationHeaders? expiredHeaders, IAuthenticationHandler authenticationHandler, CancellationToken cancellationToken)
         => authenticationLock.RunAsync(
             key,
             ct => AuthenticateAsync(key, expiredHeaders, authenticationHandler, ct).AsTask(),

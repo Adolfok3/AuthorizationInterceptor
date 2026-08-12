@@ -12,7 +12,7 @@ public class AuthorizationInterceptorOptionsTests
         var options = new AuthorizationInterceptorOptions();
 
         //Assert
-        Assert.Equal(AuthenticationLockMode.Local, options.LockMode);
+        Assert.Equal(AuthenticationLockMode.None, options.LockMode);
     }
 
     [Fact]

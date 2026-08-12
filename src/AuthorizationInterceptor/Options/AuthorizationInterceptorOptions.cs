@@ -30,9 +30,9 @@ public class AuthorizationInterceptorOptions : IAuthorizationInterceptorOptions
     /// Defines how concurrent authentication attempts against the target API are serialized.
     /// <see cref="AuthenticationLockMode.Local"/> prevents concurrent authentication within a single instance (single-flight),
     /// while <see cref="AuthenticationLockMode.Distributed"/> prevents it across multiple instances.
-    /// Default is <see cref="AuthenticationLockMode.Local"/>.
+    /// Default is <see cref="AuthenticationLockMode.None"/>.
     /// </summary>
-    public AuthenticationLockMode LockMode { get; set; } = AuthenticationLockMode.Local;
+    public AuthenticationLockMode LockMode { get; set; } = AuthenticationLockMode.None;
 
     /// <summary>
     /// The maximum time to wait to acquire the distributed lock when <see cref="AuthenticationLockMode.Distributed"/> is enabled.
