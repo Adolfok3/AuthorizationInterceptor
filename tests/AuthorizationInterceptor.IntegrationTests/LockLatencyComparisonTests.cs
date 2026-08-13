@@ -26,13 +26,17 @@ public class LockLatencyComparisonTests(RedisFixture redis, ITestOutputHelper ou
     {
         const int requests = 50;
         output.WriteLine($"Single instance, {requests} concurrent requests, auth delay {AuthDelay.TotalMilliseconds:F0}ms");
-        WriteHeader();
 
         var none = await RunSingleInstanceAsync(AuthenticationLockMode.None, requests);
         var local = await RunSingleInstanceAsync(AuthenticationLockMode.Local, requests);
 
-        WriteRow("None", none.Logins, none.Load);
-        WriteRow("Local", local.Logins, local.Load);
+        var rows = new List<(string Mode, int Logins, LoadResult Load)>
+        {
+            ("None", none.Logins, none.Load),
+            ("Local", local.Logins, local.Load),
+        };
+        Report(rows);
+        MetricsReport.Write("lock-latency-single-instance.md", $"Lock latency — single instance, {requests} concurrent requests", rows);
 
         Assert.All(none.Load.Responses.Concat(local.Load.Responses), response => Assert.True(response.IsSuccessStatusCode));
         Assert.True(none.Logins > 1);
@@ -47,17 +51,21 @@ public class LockLatencyComparisonTests(RedisFixture redis, ITestOutputHelper ou
         const int instanceCount = 3;
         const int requestsPerInstance = 20;
         output.WriteLine($"{instanceCount} instances x {requestsPerInstance} concurrent requests, auth delay {AuthDelay.TotalMilliseconds:F0}ms");
-        WriteHeader();
 
         var none = await RunAcrossInstancesAsync(AuthenticationLockMode.None, instanceCount, requestsPerInstance, shared: false);
         var local = await RunAcrossInstancesAsync(AuthenticationLockMode.Local, instanceCount, requestsPerInstance, shared: false);
         var distributedOnly = await RunAcrossInstancesAsync(AuthenticationLockMode.Distributed, instanceCount, requestsPerInstance, shared: true);
         var localAndDistributed = await RunAcrossInstancesAsync(AuthenticationLockMode.Local | AuthenticationLockMode.Distributed, instanceCount, requestsPerInstance, shared: true);
 
-        WriteRow("None", none.Logins, none.Load);
-        WriteRow("Local (isolated)", local.Logins, local.Load);
-        WriteRow("Distributed", distributedOnly.Logins, distributedOnly.Load);
-        WriteRow("Local|Distributed", localAndDistributed.Logins, localAndDistributed.Load);
+        var rows = new List<(string Mode, int Logins, LoadResult Load)>
+        {
+            ("None", none.Logins, none.Load),
+            ("Local (isolated)", local.Logins, local.Load),
+            ("Distributed", distributedOnly.Logins, distributedOnly.Load),
+            ("Local|Distributed", localAndDistributed.Logins, localAndDistributed.Load),
+        };
+        Report(rows);
+        MetricsReport.Write("lock-latency-across-instances.md", $"Lock latency — {instanceCount} instances × {requestsPerInstance} concurrent requests", rows);
 
         Assert.True(none.Logins > 1);
         Assert.Equal(instanceCount, local.Logins);
@@ -123,6 +131,13 @@ public class LockLatencyComparisonTests(RedisFixture redis, ITestOutputHelper ou
         services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redis.ConnectionString));
         services.AddSingleton<IDistributedLockProvider>(provider =>
             new RedisDistributedSynchronizationProvider(provider.GetRequiredService<IConnectionMultiplexer>().GetDatabase()));
+    }
+
+    private void Report(IReadOnlyList<(string Mode, int Logins, LoadResult Load)> rows)
+    {
+        WriteHeader();
+        foreach (var (mode, logins, load) in rows)
+            WriteRow(mode, logins, load);
     }
 
     private void WriteHeader()

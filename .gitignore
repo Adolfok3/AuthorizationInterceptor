@@ -398,3 +398,5 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 *.idea
+# Lock latency metrics artifacts (LOCK_METRICS_DIR)
+/metrics/

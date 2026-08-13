@@ -23,7 +23,15 @@ jobs:
     - name: Build
       run: dotnet build --no-restore
     - name: Test
+      env:
+        LOCK_METRICS_DIR: ${{ github.workspace }}/metrics
       run: dotnet test /p:CollectCoverage=true /p:ExcludeByAttribute="GeneratedCodeAttribute" /p:ExcludeByAttribute="CompilerGeneratedAttribute" /p:CoverletOutputFormat=\"json,cobertura\" /p:CoverletOutput=../../coverage/ /p:MergeWith=../../coverage/coverage.json
+    - name: Publish lock latency to job summary
+      if: always()
+      run: |
+        for file in "${{ github.workspace }}"/metrics/*.md; do
+          [ -e "$file" ] && cat "$file" >> "$GITHUB_STEP_SUMMARY"
+        done
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5
       with:
