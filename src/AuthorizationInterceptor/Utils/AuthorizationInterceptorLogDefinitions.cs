@@ -53,5 +53,8 @@ public static partial class AuthorizationInterceptorLogDefinitions
 
     [LoggerMessage(EventId = 16, Level = LogLevel.Debug, Message = "No new headers generated in AuthenticationHandler `{AuthenticationHandler}` with integration `{IntegrationKey}`")]
     public static partial void LogNoNewHeadersGenerated(this ILogger logger, string authenticationHandler, string integrationKey);
+
+    [LoggerMessage(EventId = 17, Level = LogLevel.Debug, Message = "Headers were refreshed by a concurrent instance with integration `{IntegrationKey}`. Skipping authentication.")]
+    public static partial void LogHeadersRefreshedByConcurrentInstance(this ILogger logger, string integrationKey);
 }
 

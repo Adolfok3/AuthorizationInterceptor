@@ -24,4 +24,20 @@ public interface IAuthorizationInterceptorOptions
     /// If null or empty is returned, no additional suffix is applied.
     /// </summary>
     Func<IHttpContextAccessor, string?>? CacheKeyBuilder { get; set; }
+
+    /// <summary>
+    /// Defines how concurrent authentication attempts against the target API are serialized.
+    /// <see cref="AuthenticationLockMode.Local"/> prevents concurrent authentication within a single instance (single-flight),
+    /// while <see cref="AuthenticationLockMode.Distributed"/> prevents it across multiple instances.
+    /// Default is <see cref="AuthenticationLockMode.Local"/>.
+    /// </summary>
+    AuthenticationLockMode LockMode { get; set; }
+
+    /// <summary>
+    /// The maximum time to wait to acquire the distributed lock when <see cref="AuthenticationLockMode.Distributed"/> is enabled.
+    /// If the lock cannot be acquired within this time, a <see cref="TimeoutException"/> is thrown.
+    /// Default is <c>null</c>, which waits indefinitely (respecting cancellation).
+    /// Ignored when <see cref="AuthenticationLockMode.Distributed"/> is not set.
+    /// </summary>
+    TimeSpan? DistributedLockTimeout { get; set; }
 }

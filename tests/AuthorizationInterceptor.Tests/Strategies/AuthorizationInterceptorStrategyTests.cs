@@ -1,6 +1,7 @@
 ﻿using AuthorizationInterceptor.Extensions.Abstractions.Handlers;
 using AuthorizationInterceptor.Extensions.Abstractions.Headers;
 using AuthorizationInterceptor.Extensions.Abstractions.Interceptors;
+using AuthorizationInterceptor.Extensions.Abstractions.Options;
 using AuthorizationInterceptor.Strategies;
 using AuthorizationInterceptor.Tests.Utils;
 using AuthorizationInterceptor.Utils;
@@ -26,7 +27,7 @@ public class AuthorizationInterceptorStrategyTests
         _logger.IsEnabled(LogLevel.Debug).Returns(true);
         var loggerFactory = Substitute.For<ILoggerFactory>();
         loggerFactory.CreateLogger("AuthorizationInterceptorStrategy").Returns(_logger);
-        _stategy = new AuthorizationInterceptorStrategy(loggerFactory, [_interceptor1, _interceptor2, _interceptor3], new AuthenticationSingleFlight());
+        _stategy = new AuthorizationInterceptorStrategy(loggerFactory, [_interceptor1, _interceptor2, _interceptor3], new AuthenticationLock(AuthenticationLockMode.Local, new AuthenticationSingleFlight(), null, null));
     }
 
     [Fact]
@@ -70,7 +71,7 @@ public class AuthorizationInterceptorStrategyTests
 
         var loggerFactory = Substitute.For<ILoggerFactory>();
         loggerFactory.CreateLogger("AuthorizationInterceptorStrategy").Returns(_logger);
-        var strategy = new AuthorizationInterceptorStrategy(loggerFactory, [], new AuthenticationSingleFlight());
+        var strategy = new AuthorizationInterceptorStrategy(loggerFactory, [], new AuthenticationLock(AuthenticationLockMode.Local, new AuthenticationSingleFlight(), null, null));
 
         //Act
         var headers = await strategy.GetHeadersAsync("test_user-1", authentication, CancellationToken.None);
@@ -357,6 +358,6 @@ public class AuthorizationInterceptorStrategyTests
         var loggerFactory = Substitute.For<ILoggerFactory>();
         loggerFactory.CreateLogger("AuthorizationInterceptorStrategy").Returns(Substitute.For<ILogger>());
 
-        return new AuthorizationInterceptorStrategy(loggerFactory, interceptors, new AuthenticationSingleFlight());
+        return new AuthorizationInterceptorStrategy(loggerFactory, interceptors, new AuthenticationLock(AuthenticationLockMode.Local, new AuthenticationSingleFlight(), null, null));
     }
 }

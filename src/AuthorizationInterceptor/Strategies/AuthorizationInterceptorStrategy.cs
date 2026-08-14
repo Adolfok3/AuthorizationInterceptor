@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AuthorizationInterceptor.Strategies;
 
-internal class AuthorizationInterceptorStrategy(ILoggerFactory loggerFactory, IAuthorizationInterceptor[] interceptors, AuthenticationSingleFlight singleFlight)
+internal class AuthorizationInterceptorStrategy(ILoggerFactory loggerFactory, IAuthorizationInterceptor[] interceptors, AuthenticationLock authenticationLock)
     : IAuthorizationInterceptorStrategy
 {
     private readonly ILogger _logger = loggerFactory.CreateLogger("AuthorizationInterceptorStrategy");
@@ -27,10 +27,7 @@ internal class AuthorizationInterceptorStrategy(ILoggerFactory loggerFactory, IA
         if (lookup.IsValid)
             return await UpdateHeadersInInterceptorsAsync(key, lookup.Index, lookup.Headers, cancellationToken);
 
-        var flight = await singleFlight.RunAsync(
-            key,
-            () => AuthenticateAsync(key, lookup.Headers, authenticationHandler, CancellationToken.None).AsTask(),
-            cancellationToken);
+        var flight = await RunWithLockAsync(key, lookup.Headers, authenticationHandler, cancellationToken);
 
         if (flight.Joined)
             _logger.LogHeadersRefreshedByConcurrentCaller(key);
@@ -45,10 +42,7 @@ internal class AuthorizationInterceptorStrategy(ILoggerFactory loggerFactory, IA
         if (interceptors.Length == 0)
             return await AuthenticateAsync(key, expiredHeaders, authenticationHandler, cancellationToken);
 
-        var flight = await singleFlight.RunAsync(
-            key,
-            () => AuthenticateAsync(key, expiredHeaders, authenticationHandler, CancellationToken.None).AsTask(),
-            cancellationToken);
+        var flight = await RunWithLockAsync(key, expiredHeaders, authenticationHandler, cancellationToken);
 
         if (flight.Joined)
             _logger.LogHeadersRefreshedByConcurrentCaller(key);
@@ -57,6 +51,25 @@ internal class AuthorizationInterceptorStrategy(ILoggerFactory loggerFactory, IA
             return flight.Headers;
 
         return await AuthenticateAsync(key, expiredHeaders, authenticationHandler, cancellationToken);
+    }
+
+    private ValueTask<AuthenticationLockResult> RunWithLockAsync(string key, AuthorizationHeaders? expiredHeaders, IAuthenticationHandler authenticationHandler, CancellationToken cancellationToken)
+        => authenticationLock.RunAsync(
+            key,
+            ct => AuthenticateAsync(key, expiredHeaders, authenticationHandler, ct).AsTask(),
+            ct => RevalidateFromConcurrentInstanceAsync(key, expiredHeaders, ct).AsTask(),
+            cancellationToken);
+
+    private async ValueTask<AuthorizationHeaders?> RevalidateFromConcurrentInstanceAsync(string key, AuthorizationHeaders? expiredHeaders, CancellationToken cancellationToken)
+    {
+        var lookup = await LookupHeadersAsync(key, cancellationToken);
+        if (lookup.IsValid && IsNewerThan(lookup.Headers, expiredHeaders))
+        {
+            _logger.LogHeadersRefreshedByConcurrentInstance(key);
+            return await UpdateHeadersInInterceptorsAsync(key, lookup.Index, lookup.Headers, cancellationToken);
+        }
+
+        return null;
     }
 
     private async ValueTask<HeadersLookup> LookupHeadersAsync(string key, CancellationToken cancellationToken)
