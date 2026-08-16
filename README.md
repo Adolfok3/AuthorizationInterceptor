@@ -2,7 +2,7 @@
 
 # Authorization Interceptor
 
-A lightweight .NET library that automatically manages HTTP authentication headers for `HttpClient`. When a request receives a 401 response, the interceptor re-authenticates and retries with fresh headers — no manual token management required.
+A lightweight .NET library that keeps your `HttpClient` authenticated for you. When a request comes back `401 Unauthorized`, the interceptor re-authenticates, refreshes the headers, and retries the request — automatically. No manual token juggling.
 
 [![GitHub Actions](https://github.com/Adolfok3/authorizationinterceptor/actions/workflows/main.yml/badge.svg)](https://github.com/Adolfok3/AuthorizationInterceptor/actions)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
@@ -10,71 +10,43 @@ A lightweight .NET library that automatically manages HTTP authentication header
 [![NuGet Version](https://img.shields.io/nuget/vpre/AuthorizationInterceptor)](https://www.nuget.org/packages/AuthorizationInterceptor)
 [![.NET Support](https://img.shields.io/badge/.NET-8%2C9%2C10-blue)](https://dotnet.microsoft.com/download)
 
-## Features
-
-- **Automatic retry on auth failure** — intercepts 401 responses and retries with fresh headers
-- **OAuth2 refresh token support** — reuse existing tokens via `RefreshToken` flow
-- **Custom header support** — return any key-value authorization headers
-- **Multiple cache backends** — in-memory, distributed (Redis/NCache), or hybrid caching
-- **Deduplicated authentication** — concurrent requests share a single authentication call per cache key
-- **Local & distributed locking** — coalesce authentication within an instance, and optionally across instances via `DistributedLock`
-- **Extensible interceptor chain** — compose your own caching and logging strategies
-- **Multi-target framework support** — .NET 8+
-
 ## Quick Start
 
-Install the core package:
+Only two steps are required: tell the interceptor **how to authenticate**, then **attach it to an `HttpClient`**.
 
-```
+**1. Install the package**
+
+```bash
 dotnet add package AuthorizationInterceptor
 ```
 
-### Step 1: Implement authentication logic
+**2. Write a handler that returns your authorization headers**
 
-Create a class that implements `IAuthenticationHandler`:
+`AuthorizationHeaders` is just a string dictionary — return whatever headers your API needs.
 
 ```csharp
 public class TargetApiAuth : IAuthenticationHandler
 {
     private readonly HttpClient _client;
 
-    public TargetApiAuth(HttpClient client)
-    {
-        _client = client;
-    }
+    public TargetApiAuth(IHttpClientFactory factory)
+        => _client = factory.CreateClient("Auth");
 
     public async ValueTask<AuthorizationHeaders?> AuthenticateAsync(
         AuthorizationHeaders? expiredHeaders, CancellationToken ct)
     {
-        if (expiredHeaders == null)
-        {
-            // First login — request a fresh token
-            var response = await _client.PostAsync("auth", content: null, ct);
-        }
-        else
-        {
-            // Token expired — refresh it using the existing refresh token
-            // This step is only applicable to APIs integrating with OAuth refresh tokens
-            var refreshToken = expiredHeaders.OAuthHeaders!.RefreshToken;
-            var response = await _client.PostAsync($"refresh?refresh={refreshToken}", content: null, ct);
-        }
+        var response = await _client.PostAsync("auth", content: null, ct);
+        var token = await response.Content.ReadAsStringAsync(ct);
 
-        var json = await response.Content.ReadAsStringAsync(ct);
-        var tokens = JsonSerializer.Deserialize<UserTokens>(json)!;
-
-        return new OAuthHeaders(
-            accessToken: tokens.AccessToken,
-            tokenType: tokens.TokenType,
-            expiresIn: tokens.ExpiresIn,
-            refreshToken: tokens.RefreshToken,
-            refreshTokenExpiresIn: tokens.RefreshAccessTokenExpiresIn);
+        return new AuthorizationHeaders
+        {
+            ["Authorization"] = $"Bearer {token}"
+        };
     }
 }
-
-public record UserTokens(string AccessToken, string TokenType, int ExpiresIn, string RefreshToken, int RefreshAccessTokenExpiresIn);
 ```
 
-### Step 2: Register the handler
+**3. Attach it to your `HttpClient`**
 
 ```csharp
 builder.Services.AddHttpClient("TargetApi")
@@ -82,55 +54,102 @@ builder.Services.AddHttpClient("TargetApi")
     .ConfigureHttpClient(c => c.BaseAddress = new Uri("https://targetapi.com"));
 ```
 
-That's it. Calls to this HttpClient will automatically retry with fresh authorization headers when a 401 is received.
+**That's it.** Every call made through this `HttpClient` now carries the authorization headers, and any `401` triggers a re-authentication and retry — transparently.
 
-## Caching & Interceptors
+> `AuthenticateAsync` is called the first time headers are needed and again whenever a request is rejected. On a rejection, the previously used headers are passed back in as `expiredHeaders` (see [OAuth & refresh tokens](#oauth--refresh-tokens) below).
 
-By default, without any cache interceptor, a new access token is generated on every expiration. For production deployments, use one of the cache interceptors below to avoid redundant authentication calls.
+## Features
 
-### Available Packages
+- **Automatic retry on auth failure** — intercepts `401` responses and retries with fresh headers.
+- **Any headers you want** — return a simple dictionary, or use the built-in OAuth2 helper.
+- **OAuth2 refresh tokens** — reuse existing tokens through the `RefreshToken` flow.
+- **Caching** — in-memory, distributed (Redis/NCache), or hybrid, to avoid redundant logins.
+- **Deduplicated authentication** — concurrent requests share a single authentication call.
+- **Local & distributed locking** — coalesce authentication within an instance, and optionally across instances.
+- **.NET 8, 9, and 10.**
 
-| Package                                                                                                                                     | Use case                                                                   |
-| ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| [AuthorizationInterceptor.Extensions.MemoryCache](https://www.nuget.org/packages/AuthorizationInterceptor.Extensions.MemoryCache)           | Local in-memory caching — good for single-instance apps                    |
-| [AuthorizationInterceptor.Extensions.DistributedCache](https://www.nuget.org/packages/AuthorizationInterceptor.Extensions.DistributedCache) | Distributed caching (Redis, NCache, etc.) — for multi-instance deployments |
-| [AuthorizationInterceptor.Extensions.HybridCache](https://www.nuget.org/packages/AuthorizationInterceptor.Extensions.HybridCache)           | Memory + distributed cache combined — recommended for production           |
+## OAuth & refresh tokens
 
-### Recommended configuration: Hybrid Cache
+If your API issues OAuth2 tokens, return `OAuthHeaders` instead of a raw dictionary. The interceptor then knows the token's lifetime (so it can cache and expire it) and hands the expired headers back to you so you can refresh instead of logging in again.
+
+```csharp
+public async ValueTask<AuthorizationHeaders?> AuthenticateAsync(
+    AuthorizationHeaders? expiredHeaders, CancellationToken ct)
+{
+    // expiredHeaders is null on the first authentication, and populated on a refresh.
+    var response = expiredHeaders?.OAuthHeaders?.RefreshToken is { } refreshToken
+        ? await _client.PostAsync($"refresh?refresh={refreshToken}", content: null, ct)
+        : await _client.PostAsync("auth", content: null, ct);
+
+    var json = await response.Content.ReadAsStringAsync(ct);
+    var tokens = JsonSerializer.Deserialize<UserTokens>(json)!;
+
+    // (AccessToken, TokenType, ExpiresIn, RefreshToken, ExpiresInRefreshToken)
+    return new OAuthHeaders(
+        tokens.AccessToken, tokens.TokenType, tokens.ExpiresIn,
+        tokens.RefreshToken, tokens.RefreshAccessTokenExpiresIn);
+}
+
+public record UserTokens(
+    string AccessToken, string TokenType, int ExpiresIn,
+    string RefreshToken, int RefreshAccessTokenExpiresIn);
+```
+
+`OAuthHeaders` becomes a standard `Authorization: {TokenType} {AccessToken}` header automatically. Only `AccessToken` and `TokenType` are required; the rest are optional. The refresh branch is only needed if your provider supports refresh tokens — otherwise just re-authenticate.
+
+## Caching (recommended for production)
+
+Without a cache, a fresh token is requested on every expiration. Add one cache interceptor and tokens are reused until they expire.
+
+| Package | Use case |
+| --- | --- |
+| [AuthorizationInterceptor.Extensions.MemoryCache](https://www.nuget.org/packages/AuthorizationInterceptor.Extensions.MemoryCache) | Single-instance apps |
+| [AuthorizationInterceptor.Extensions.DistributedCache](https://www.nuget.org/packages/AuthorizationInterceptor.Extensions.DistributedCache) | Multi-instance (Redis, NCache, …) |
+| [AuthorizationInterceptor.Extensions.HybridCache](https://www.nuget.org/packages/AuthorizationInterceptor.Extensions.HybridCache) | Memory + distributed — **recommended** |
+
+Enable it in the options callback — e.g. hybrid caching:
 
 ```csharp
 builder.Services.AddHttpClient("TargetApi")
     .AddAuthorizationInterceptorHandler<TargetApiAuth>(options =>
     {
-        options.UseHybridCacheInterceptor(); // memory → distributed → auth handler
+        options.UseHybridCacheInterceptor();
     })
     .ConfigureHttpClient(c => c.BaseAddress = new Uri("https://targetapi.com"));
 ```
 
-This uses an in-memory cache first (fastest), falls back to distributed cache, then calls the authentication handler only when no cached token exists. Instances share the same token through the distributed layer, which avoids redundant login calls.
+Hybrid caching checks in-memory first (fastest), falls back to the distributed cache (shared across instances), and only then calls your handler. Swap in `UseMemoryCacheInterceptor()` or `UseDistributedCacheInterceptor()` if you prefer one layer.
 
-### Concurrency
+## Advanced
 
-When several requests need headers at the same time and none are cached, only one of them calls the authentication handler. The others wait, then reuse whatever it stored in the interceptors. The same applies after an unauthenticated response: a request only refreshes the token if no one else has already replaced the one that was rejected.
+<details open>
+<summary><strong>Concurrency &amp; deduplication</strong></summary>
 
-This deduplication is a **local lock** (`LockMode.Local`, the default), scoped to the process and to the `HttpClient` name plus the `CacheKeyBuilder` suffix — different cache keys never block each other. By default, across instances it is the shared cache, not a lock, that keeps authentication calls down: with a cold distributed cache, two instances can still authenticate at the same time. If your provider invalidates the previous token on every issuance, enable a [distributed lock](#locking-across-instances) when scaling out.
+When several requests need headers at the same time and none are cached, only one of them calls your handler. The others wait and reuse the result. The same applies after a `401`: a request only re-authenticates if no one else has already replaced the rejected token.
+
+This deduplication is a **local lock** (`AuthenticationLockMode.Local`, the default), scoped to the process and to the `HttpClient` name (plus any `CacheKeyBuilder` suffix). Across instances it's the shared cache — not a lock — that keeps logins down; with a cold distributed cache two instances can still authenticate at once. If your provider invalidates the previous token on every issuance, add a [distributed lock](#locking-across-instances).
 
 Deduplication requires at least one cache interceptor. Without one there is nothing to share, so every request authenticates on its own.
 
-### Locking across instances
+</details>
 
-Set `LockMode` to control how concurrent authentications are serialized. It is an `[Flags]` enum, so the local and distributed scopes can be combined:
+<details open>
+<summary><strong>Locking across instances</strong></summary>
 
-| Mode                              | Prevents concurrent authentication…            |
-| --------------------------------- | ---------------------------------------------- |
-| `AuthenticationLockMode.None`     | not at all                                     |
-| `AuthenticationLockMode.Local`    | within a single instance (default)             |
-| `AuthenticationLockMode.Distributed` | across multiple instances                   |
-| `Local \| Distributed`            | both (recommended when scaling out)            |
+This is what protects you from a **cache stampede**: when the shared token expires (or the cache is cold) and many instances suddenly hit the API at once, without a distributed lock they would all authenticate simultaneously, hammering the auth provider with duplicate logins. A distributed lock lets a single instance authenticate while the others wait and reuse its result.
 
-The distributed lock builds on [DistributedLock.Core](https://www.nuget.org/packages/DistributedLock.Core), which is only the abstraction — you choose and register the provider (Redis, SQL Server, Postgres, Azure, FileSystem, …). Install the provider package you want and register its `IDistributedLockProvider` as a singleton:
+`LockMode` controls how concurrent authentications are serialized. It's a `[Flags]` enum, so scopes combine:
 
-```
+| Mode | Prevents concurrent authentication… |
+| --- | --- |
+| `AuthenticationLockMode.None` | not at all |
+| `AuthenticationLockMode.Local` | within a single instance (default) |
+| `AuthenticationLockMode.Distributed` | across multiple instances |
+| `Local \| Distributed` | both (recommended when scaling out) |
+
+The distributed lock builds on [DistributedLock.Core](https://www.nuget.org/packages/DistributedLock.Core), which is only the abstraction — you choose and register the provider (Redis, SQL Server, Postgres, Azure, FileSystem, …):
+
+```bash
 dotnet add package DistributedLock.Redis
 ```
 
@@ -152,91 +171,101 @@ builder.Services.AddHttpClient("TargetApi")
     });
 ```
 
-With the distributed lock enabled, only one instance authenticates for a given key at a time. After acquiring the lock, the interceptor re-checks the shared cache (double-checked locking): if another instance already refreshed the headers while this one was waiting, it adopts them and skips the authentication call entirely. Pair it with a distributed (or hybrid) cache interceptor so there is a shared cache for that re-check to hit.
+With the distributed lock enabled, only one instance authenticates for a given key at a time. After acquiring the lock it re-checks the shared cache (double-checked locking): if another instance already refreshed the headers, it adopts them and skips the login. Pair it with a distributed (or hybrid) cache so there's a shared cache for that re-check to hit.
 
-If `LockMode` includes `Distributed` but no `IDistributedLockProvider` is registered, creating the `HttpClient` throws `InvalidOperationException`.
+> If `LockMode` includes `Distributed` but no `IDistributedLockProvider` is registered, creating the `HttpClient` throws `InvalidOperationException`.
 
-## Options & Customization
+</details>
 
-### Retry on 403 as well as 401
+<details open>
+<summary><strong>Customizing what counts as "unauthorized"</strong></summary>
 
-Some APIs return 403 instead of 401 when tokens expire:
+By default a response only triggers re-authentication when its status code is `401 Unauthorized`. But `UnauthenticatedPredicate` is a full `Func<HttpResponseMessage, bool>`, so you decide what "unauthorized" means for your API — it isn't limited to status codes. You get the whole response, so you can inspect the status, a header, or even the response body.
 
-```csharp
-builder.Services.AddHttpClient("TargetApi")
-    .AddAuthorizationInterceptorHandler<TargetApiAuth>(options =>
-    {
-        options.UnauthenticatedPredicate = response =>
-            response.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized;
-    });
-```
-
-### Multiple HttpClient instances with different auth data
-
-When you need to pass extra dependencies into your authentication handler:
+Most common case — also treat `403` as expired:
 
 ```csharp
-builder.Services.AddHttpClient("TargetApi")
-    .AddAuthorizationInterceptorHandler((sp) =>
-        ActivatorUtilities.CreateInstance<TargetApiAuth>(sp, someOtherDependency));
+.AddAuthorizationInterceptorHandler<TargetApiAuth>(options =>
+{
+    options.UnauthenticatedPredicate = response =>
+        response.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized;
+});
 ```
 
-### Per-request cache keys
-
-When the same `HttpClient` is used for the same target API, but authorization headers must be cached separately by a request value, configure `CacheKeyBuilder`.
-
-This is useful when a single integration can authenticate on behalf of different users, tenants, stores, organizations, or any other request-scoped identifier. The value returned by `CacheKeyBuilder` is appended to the cache key used by the configured cache interceptor.
-
-Example using the authenticated user:
+Some APIs answer `200 OK` with an error in a header or in the payload. You can key off those instead:
 
 ```csharp
-builder.Services.AddHttpClient("TargetApi")
-    .AddAuthorizationInterceptorHandler<TargetApiAuth>(options =>
-    {
-        options.UseHybridCacheInterceptor();
-        options.CacheKeyBuilder = accessor =>
-            accessor.HttpContext?.User.FindFirst("sub")?.Value;
-    });
+// Based on a custom header
+options.UnauthenticatedPredicate = response =>
+    response.Headers.TryGetValues("x-auth-status", out var values)
+        && values.Contains("expired");
+
+// Based on the response body
+options.UnauthenticatedPredicate = response =>
+{
+    var body = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+    return body.Contains("token_expired");
+};
 ```
 
-Example using a route or query value:
+Return `true` for any response that means "the credentials are no longer valid" and the interceptor will re-authenticate and retry.
+
+</details>
+
+<details open>
+<summary><strong>Passing extra dependencies into a handler</strong></summary>
+
+Use the delegate overload when your handler needs values that aren't in DI:
 
 ```csharp
-builder.Services.AddHttpClient("TargetApi")
-    .AddAuthorizationInterceptorHandler<TargetApiAuth>(options =>
-    {
-        options.UseDistributedCacheInterceptor();
-        options.CacheKeyBuilder = accessor =>
-        {
-            var httpContext = accessor.HttpContext;
-            var storeId = httpContext?.Request.RouteValues["storeId"]?.ToString()
-                ?? httpContext?.Request.Query["storeId"].ToString();
-
-            return string.IsNullOrWhiteSpace(storeId) ? null : storeId;
-        };
-    });
+.AddAuthorizationInterceptorHandler(sp =>
+    ActivatorUtilities.CreateInstance<TargetApiAuth>(sp, someOtherDependency));
 ```
 
-With this configuration, requests using the same `HttpClient` but different `HttpContext.Request` values will not share the same cached authorization headers.
+</details>
 
-If `CacheKeyBuilder` returns `null` or an empty value, the interceptor uses the default cache key for the `HttpClient` name.
+<details open>
+<summary><strong>Per-request cache keys</strong></summary>
 
-Interceptors receive the two halves already combined, as a single `key` parameter: the `HttpClient` name on its own when no suffix applies, or `{name}_{suffix}` when one does.
-
-### Custom interceptors
-
-Add custom logic steps to the interceptor chain:
+When one `HttpClient` authenticates on behalf of different users, tenants, stores, etc., use `CacheKeyBuilder` to cache their headers separately. The returned value is appended to the cache key.
 
 ```csharp
-builder.Services.AddHttpClient("TargetApi")
-    .AddAuthorizationInterceptorHandler<TargetApiAuth>(options =>
-    {
-        options.UseMemoryCacheInterceptor();
-        options.UseCustomInterceptor<MyLoggingInterceptor>();
-    });
+.AddAuthorizationInterceptorHandler<TargetApiAuth>(options =>
+{
+    options.UseHybridCacheInterceptor();
+    options.CacheKeyBuilder = accessor =>
+        accessor.HttpContext?.User.FindFirst("sub")?.Value;
+});
 ```
 
-Implement `IAuthorizationInterceptor`:
+Or from a route/query value:
+
+```csharp
+options.CacheKeyBuilder = accessor =>
+{
+    var http = accessor.HttpContext;
+    var storeId = http?.Request.RouteValues["storeId"]?.ToString()
+        ?? http?.Request.Query["storeId"].ToString();
+    return string.IsNullOrWhiteSpace(storeId) ? null : storeId;
+};
+```
+
+Requests with different values no longer share cached headers. If the builder returns `null`/empty, the default key (the `HttpClient` name) is used. Interceptors receive the two halves combined as a single `key`: just the name when no suffix applies, or `{name}_{suffix}` when one does.
+
+</details>
+
+<details open>
+<summary><strong>Custom interceptors</strong></summary>
+
+Add your own steps to the interceptor chain — e.g. logging or a custom cache backend:
+
+```csharp
+.AddAuthorizationInterceptorHandler<TargetApiAuth>(options =>
+{
+    options.UseMemoryCacheInterceptor();
+    options.UseCustomInterceptor<MyLoggingInterceptor>();
+});
+```
 
 ```csharp
 public class MyLoggingInterceptor : IAuthorizationInterceptor
@@ -255,13 +284,15 @@ public class MyLoggingInterceptor : IAuthorizationInterceptor
 }
 ```
 
-The interceptor chain becomes: `MemoryCache → MyLoggingInterceptor → AuthHandler → MyLoggingInterceptor → MemoryCache`. Build your own cache backend by targeting [AuthorizationInterceptor.Extensions.Abstractions](https://www.nuget.org/packages/AuthorizationInterceptor.Extensions.Abstractions).
+The chain becomes `MemoryCache → MyLoggingInterceptor → AuthHandler → MyLoggingInterceptor → MemoryCache`. Build a custom cache backend by targeting [AuthorizationInterceptor.Extensions.Abstractions](https://www.nuget.org/packages/AuthorizationInterceptor.Extensions.Abstractions).
+
+</details>
 
 ## Sample Applications
 
 Run a working demo with a mock API endpoint:
 
-```
+```bash
 cd samples
 dotnet run --project TargetApi   # starts mock auth server on :5001
 # in another terminal:
