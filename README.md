@@ -61,6 +61,7 @@ builder.Services.AddHttpClient("TargetApi")
 ## Features
 
 - **Automatic retry on auth failure** — intercepts `401` responses and retries with fresh headers.
+- **Built-in OAuth2 Client Credentials** — authenticate services with a client ID and secret without writing a custom handler.
 - **Any headers you want** — return a simple dictionary, or use the built-in OAuth2 helper.
 - **OAuth2 refresh tokens** — reuse existing tokens through the `RefreshToken` flow.
 - **Caching** — in-memory, distributed (Redis/NCache), or hybrid, to avoid redundant logins.
@@ -97,6 +98,29 @@ public record UserTokens(
 
 `OAuthHeaders` becomes a standard `Authorization: {TokenType} {AccessToken}` header automatically. Only `AccessToken` and `TokenType` are required; the rest are optional. The refresh branch is only needed if your provider supports refresh tokens — otherwise just re-authenticate.
 
+## Built-in OAuth2 Client Credentials
+
+For machine-to-machine integrations, use the built-in Client Credentials handler instead of implementing `IAuthenticationHandler`. This works with OAuth 2.0 providers such as Keycloak:
+
+```csharp
+builder.Services.AddHttpClient("OrdersApi")
+    .AddClientCredentialsAuthorizationInterceptorHandler(
+        auth =>
+        {
+            auth.TokenEndpoint = new Uri(
+                "https://keycloak.example.com/realms/my-realm/protocol/openid-connect/token");
+            auth.ClientId = builder.Configuration["OrdersApi:ClientId"]!;
+            auth.ClientSecret = builder.Configuration["OrdersApi:ClientSecret"]!;
+        },
+        interceptor => interceptor.UseHybridCacheInterceptor())
+    .ConfigureHttpClient(client =>
+        client.BaseAddress = new Uri("https://orders.example.com"));
+```
+
+The handler requests and converts the token into regular `OAuthHeaders`, so caching, expiration, locking, `401` handling, and retry use the existing interceptor pipeline. Client credentials use HTTP Basic by default; scopes, form-body authentication, and additional parameters are also supported. See [`OAuth2ClientCredentialsOptions`](./src/AuthorizationInterceptor/Options/OAuth2ClientCredentialsOptions.cs) for all configuration options.
+
+Token requests use a dedicated client named `{HttpClientName}OAuth2ClientCredentialsAuthenticationHandler`. Remote token endpoints must use HTTPS, except for loopback addresses. Keep client secrets in a secure configuration provider rather than source code.
+
 ## Caching (recommended for production)
 
 Without a cache, a fresh token is requested on every expiration. Add one cache interceptor and tokens are reused until they expire.
@@ -127,7 +151,7 @@ Hybrid caching checks in-memory first (fastest), falls back to the distributed c
 
 When several requests need headers at the same time and none are cached, only one of them calls your handler. The others wait and reuse the result. The same applies after a `401`: a request only re-authenticates if no one else has already replaced the rejected token.
 
-This deduplication is a **local lock** (`AuthenticationLockMode.Local`, the default), scoped to the process and to the `HttpClient` name (plus any `CacheKeyBuilder` suffix). Across instances it's the shared cache — not a lock — that keeps logins down; with a cold distributed cache two instances can still authenticate at once. If your provider invalidates the previous token on every issuance, add a [distributed lock](#locking-across-instances).
+This deduplication is enabled with a **local lock** (`AuthenticationLockMode.Local`), scoped to the process and to the `HttpClient` name (plus any `CacheKeyBuilder` suffix). Locking is disabled by default (`AuthenticationLockMode.None`). Across instances it's the shared cache — not a lock — that keeps logins down; with a cold distributed cache two instances can still authenticate at once. If your provider invalidates the previous token on every issuance, add a [distributed lock](#locking-across-instances).
 
 Deduplication requires at least one cache interceptor. Without one there is nothing to share, so every request authenticates on its own.
 
@@ -142,8 +166,8 @@ This is what protects you from a **cache stampede**: when the shared token expir
 
 | Mode | Prevents concurrent authentication… |
 | --- | --- |
-| `AuthenticationLockMode.None` | not at all |
-| `AuthenticationLockMode.Local` | within a single instance (default) |
+| `AuthenticationLockMode.None` | not at all (default) |
+| `AuthenticationLockMode.Local` | within a single instance |
 | `AuthenticationLockMode.Distributed` | across multiple instances |
 | `Local \| Distributed` | both (recommended when scaling out) |
 

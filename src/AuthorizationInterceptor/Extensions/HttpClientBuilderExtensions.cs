@@ -18,6 +18,33 @@ namespace AuthorizationInterceptor.Extensions;
 public static class HttpClientBuilderExtensions
 {
     /// <summary>
+    /// Adds the authorization interceptor using the built-in OAuth 2.0 Client Credentials authentication handler.
+    /// </summary>
+    /// <param name="builder"><see cref="IHttpClientBuilder"/></param>
+    /// <param name="configureAuthentication">Configures the OAuth 2.0 token endpoint and client credentials.</param>
+    /// <param name="configureInterceptor">Configures the authorization interceptor pipeline.</param>
+    /// <returns>Returns <see cref="IHttpClientBuilder"/>.</returns>
+    public static IHttpClientBuilder AddClientCredentialsAuthorizationInterceptorHandler(
+        this IHttpClientBuilder builder,
+        Action<OAuth2ClientCredentialsOptions> configureAuthentication,
+        Action<AuthorizationInterceptorOptions>? configureInterceptor = null)
+    {
+        var authenticationOptions = new OAuth2ClientCredentialsOptions();
+        configureAuthentication(authenticationOptions);
+        authenticationOptions.Validate();
+
+        var authenticationHttpClientName = $"{builder.Name}{nameof(OAuth2ClientCredentialsAuthenticationHandler)}";
+        builder.Services.AddHttpClient(authenticationHttpClientName);
+
+        return builder.AddAuthorizationInterceptorHandler(
+            provider => new OAuth2ClientCredentialsAuthenticationHandler(
+                provider.GetRequiredService<IHttpClientFactory>(),
+                authenticationOptions,
+                authenticationHttpClientName),
+            configureInterceptor);
+    }
+
+    /// <summary>
     /// Init a new authorization interceptor handler configuration for IHttpClientBuilder
     /// </summary>
     /// <typeparam name="T">Implementation of <see cref="IAuthenticationHandler"/></typeparam>
