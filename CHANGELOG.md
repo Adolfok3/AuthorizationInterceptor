@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- Added a built-in OAuth 2.0 Client Credentials authentication handler through `AddClientCredentialsAuthorizationInterceptorHandler`.
+- Added support for `client_secret_basic` (default), `client_secret_post`, optional scopes, additional token parameters, and a dedicated named `HttpClient` for token requests.
+
 ## [6.2.0] - 2026-08-11
 
 ### Added

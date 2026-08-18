@@ -1,5 +1,6 @@
 ﻿using AuthorizationInterceptor.Extensions;
 using AuthorizationInterceptor.Extensions.Abstractions.Options;
+using AuthorizationInterceptor.Options;
 using AuthorizationInterceptor.Tests.Utils;
 using Medallion.Threading;
 using Microsoft.AspNetCore.Http;
@@ -9,6 +10,42 @@ namespace AuthorizationInterceptor.Tests.Extensions;
 
 public class HttpClientBuilderExtensionsTests
 {
+
+    [Fact]
+    public void AddClientCredentialsAuthorizationInterceptorHandler_WithValidOptions_ShouldBuildClient()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddHttpClient("Test")
+            .AddClientCredentialsAuthorizationInterceptorHandler(options =>
+            {
+                options.TokenEndpoint = new Uri("https://identity.example.com/token");
+                options.ClientId = "client";
+                options.ClientSecret = "secret";
+            });
+
+        var provider = services.BuildServiceProvider();
+
+        // Act
+        var action = () => provider.GetRequiredService<IHttpClientFactory>().CreateClient("Test");
+
+        // Assert
+        Assert.Null(Record.Exception(action));
+    }
+
+    [Fact]
+    public void AddClientCredentialsAuthorizationInterceptorHandler_WithInvalidOptions_ShouldThrow()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        var action = () => services.AddHttpClient("Test")
+            .AddClientCredentialsAuthorizationInterceptorHandler(_ => { });
+
+        // Assert
+        Assert.Throws<ArgumentException>(action);
+    }
 
     [Fact]
     public void AddAuthorizationInterceptorHandler_WithoutOptions_ShouldExecuteSuccessfully()
