@@ -6,7 +6,7 @@ namespace AuthorizationInterceptor.Tests.Options;
 public class AuthorizationInterceptorOptionsTests
 {
     [Fact]
-    public void LockMode_ShouldDefaultToLocal()
+    public void LockMode_ShouldDefaultToNone()
     {
         //Act
         var options = new AuthorizationInterceptorOptions();

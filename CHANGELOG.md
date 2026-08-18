@@ -7,9 +7,9 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - Added `AuthorizationInterceptorOptions.LockMode`, an `AuthenticationLockMode` flags enum that controls how concurrent authentications are serialized:
-  - `Local` (default) — single-flight lock that coalesces concurrent authentications **within the instance**, preserving the 6.1.0 behavior.
+  - `Local` — single-flight lock that coalesces concurrent authentications **within the instance**.
   - `Distributed` — distributed lock that serializes authentication **across multiple instances**, so only one instance authenticates for a given key at a time.
-  - `None` — no locking.
+  - `None` (default) — no locking.
   - `Local` and `Distributed` are independent flags and can be combined (`Local | Distributed`).
 - Added distributed locking backed by [DistributedLock.Core](https://www.nuget.org/packages/DistributedLock.Core). When `LockMode` includes `Distributed`, register an `IDistributedLockProvider` of your choice (Redis, SqlServer, Postgres, Azure, FileSystem, etc.) in the service collection. After acquiring the lock, the interceptor re-checks the shared cache (double-checked locking) and adopts headers a concurrent instance may have already refreshed, skipping a redundant authentication.
 - Added `AuthorizationInterceptorOptions.DistributedLockTimeout`, the maximum time to wait to acquire the distributed lock. Defaults to `null` (wait indefinitely, respecting cancellation).

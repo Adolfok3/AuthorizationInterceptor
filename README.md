@@ -127,7 +127,7 @@ Hybrid caching checks in-memory first (fastest), falls back to the distributed c
 
 When several requests need headers at the same time and none are cached, only one of them calls your handler. The others wait and reuse the result. The same applies after a `401`: a request only re-authenticates if no one else has already replaced the rejected token.
 
-This deduplication is a **local lock** (`AuthenticationLockMode.Local`, the default), scoped to the process and to the `HttpClient` name (plus any `CacheKeyBuilder` suffix). Across instances it's the shared cache — not a lock — that keeps logins down; with a cold distributed cache two instances can still authenticate at once. If your provider invalidates the previous token on every issuance, add a [distributed lock](#locking-across-instances).
+This deduplication is enabled with a **local lock** (`AuthenticationLockMode.Local`), scoped to the process and to the `HttpClient` name (plus any `CacheKeyBuilder` suffix). Locking is disabled by default (`AuthenticationLockMode.None`). Across instances it's the shared cache — not a lock — that keeps logins down; with a cold distributed cache two instances can still authenticate at once. If your provider invalidates the previous token on every issuance, add a [distributed lock](#locking-across-instances).
 
 Deduplication requires at least one cache interceptor. Without one there is nothing to share, so every request authenticates on its own.
 
@@ -142,8 +142,8 @@ This is what protects you from a **cache stampede**: when the shared token expir
 
 | Mode | Prevents concurrent authentication… |
 | --- | --- |
-| `AuthenticationLockMode.None` | not at all |
-| `AuthenticationLockMode.Local` | within a single instance (default) |
+| `AuthenticationLockMode.None` | not at all (default) |
+| `AuthenticationLockMode.Local` | within a single instance |
 | `AuthenticationLockMode.Distributed` | across multiple instances |
 | `Local \| Distributed` | both (recommended when scaling out) |
 

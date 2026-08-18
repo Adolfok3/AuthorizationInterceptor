@@ -20,7 +20,7 @@ public enum AuthenticationLockMode
 
     /// <summary>
     /// Distributed lock. Prevents concurrent authentication across multiple instances, so only one
-    /// instance authenticates against the target API at a time. Not yet implemented.
+    /// instance authenticates against the target API at a time.
     /// </summary>
     Distributed = 2
 }
