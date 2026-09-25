@@ -19,8 +19,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.*" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.*" />
     <PackageReference Include="DistributedLock.Redis" Version="1.1.1" />
-    <PackageReference Include="Testcontainers.Redis" Version="4.13.0" />
-    <PackageReference Include="Xunit.SkippableFact" Version="1.5.23" />
+    <PackageReference Include="Testcontainers.Redis" Version="4.15.0" />
+    <PackageReference Include="Xunit.SkippableFact" Version="1.5.85" />
   </ItemGroup>
-
 </Project>
