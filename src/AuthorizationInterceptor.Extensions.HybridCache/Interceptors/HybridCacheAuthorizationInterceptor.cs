@@ -1,4 +1,5 @@
-﻿using AuthorizationInterceptor.Extensions.Abstractions.Headers;
+﻿using System.Text;
+using AuthorizationInterceptor.Extensions.Abstractions.Headers;
 using AuthorizationInterceptor.Extensions.Abstractions.Interceptors;
 using AuthorizationInterceptor.Extensions.Abstractions.Json;
 using Microsoft.Extensions.Caching.Hybrid;
@@ -7,14 +8,14 @@ namespace AuthorizationInterceptor.Extensions.HybridCache.Interceptors;
 
 internal sealed class HybridCacheAuthorizationInterceptor(Microsoft.Extensions.Caching.Hybrid.HybridCache hybridCache) : IAuthorizationInterceptor
 {
-    private const string CacheKey = "authorization_interceptor_hybrid_cache_HybridCacheAuthorizationInterceptor_{0}";
+    private readonly CompositeFormat keyFormat = CompositeFormat.Parse("authorization_interceptor_hybrid_cache_HybridCacheAuthorizationInterceptor_{0}");
 
     public async ValueTask<AuthorizationHeaders?> GetHeadersAsync(string key, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         var data = await hybridCache.GetOrCreateAsync(
-            string.Format(CacheKey, key),
+            string.Format(null, keyFormat, key),
             _ => ValueTask.FromResult<string?>(null),
             new HybridCacheEntryOptions { Flags = HybridCacheEntryFlags.DisableLocalCacheWrite | HybridCacheEntryFlags.DisableDistributedCacheWrite },
             cancellationToken: cancellationToken);
@@ -36,6 +37,6 @@ internal sealed class HybridCacheAuthorizationInterceptor(Microsoft.Extensions.C
             LocalCacheExpiration = newHeaders.GetRealExpiration(),
         };
 
-        await hybridCache.SetAsync(string.Format(CacheKey, key), data, options, cancellationToken: cancellationToken);
+        await hybridCache.SetAsync(string.Format(null, keyFormat, key), data, options, cancellationToken: cancellationToken);
     }
 }

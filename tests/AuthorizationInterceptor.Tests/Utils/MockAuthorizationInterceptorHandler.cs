@@ -1,6 +1,6 @@
 ﻿namespace AuthorizationInterceptor.Tests.Utils;
 
-internal class MockAuthorizationInterceptorHandler : DelegatingHandler
+internal sealed class MockAuthorizationInterceptorHandler : DelegatingHandler
 {
     protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken)
     {
