@@ -1,10 +1,11 @@
+using System.Net;
+using System.Text;
 using AuthorizationInterceptor.Extensions;
 using AuthorizationInterceptor.Extensions.Abstractions.Headers;
 using AuthorizationInterceptor.Extensions.Abstractions.Interceptors;
+using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using System.Net;
-using System.Text;
 
 namespace AuthorizationInterceptor.Tests.Extensions;
 
@@ -13,7 +14,7 @@ public class OAuth2ClientCredentialsRegistrationTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task RegisteredHandler_ShouldUseAuthenticationClientConfiguredBeforeOrAfterRegistration(bool configureAuthenticationClientFirst)
+    public async Task RegisteredHandlerShouldUseAuthenticationClientConfiguredBeforeOrAfterRegistration(bool configureAuthenticationClientFirst)
     {
         var tokenEndpoint = new TokenEndpointHandler();
         var targetApi = new TargetApiHandler();
@@ -44,14 +45,14 @@ public class OAuth2ClientCredentialsRegistrationTests
 
         using var response = await client.GetAsync("https://orders.example.com/orders");
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal(1, tokenEndpoint.RequestCount);
-        Assert.Equal("Bearer", targetApi.AuthorizationScheme);
-        Assert.Equal("client-credentials-token", targetApi.AuthorizationParameter);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        tokenEndpoint.RequestCount.Should().Be(1);
+        targetApi.AuthorizationScheme.Should().Be("Bearer");
+        targetApi.AuthorizationParameter.Should().Be("client-credentials-token");
     }
 
     [Fact]
-    public async Task RegisteredHandlers_ForDifferentNamedClients_ShouldKeepCredentialsAndCachedTokensSeparate()
+    public async Task RegisteredHandlersForDifferentNamedClientsShouldKeepCredentialsAndCachedTokensSeparate()
     {
         var services = new ServiceCollection();
         var cache = new InterceptorCache();
@@ -63,11 +64,10 @@ public class OAuth2ClientCredentialsRegistrationTests
         {
             var tokenEndpoint = new CallbackHttpMessageHandler((request, _) =>
             {
-                Assert.Equal(new Uri($"https://identity.example.com/{apiName}/token"), request.RequestUri);
-                Assert.Equal("Basic", request.Headers.Authorization?.Scheme);
-                Assert.Equal(
-                    Convert.ToBase64String(Encoding.UTF8.GetBytes($"{apiName}-client:{apiName}-secret")),
-                    request.Headers.Authorization?.Parameter);
+                request.RequestUri.Should().Be(new Uri($"https://identity.example.com/{apiName}/token"));
+                (request.Headers.Authorization?.Scheme).Should().Be("Basic");
+                (request.Headers.Authorization?.Parameter).Should().Be(
+                    Convert.ToBase64String(Encoding.UTF8.GetBytes($"{apiName}-client:{apiName}-secret")));
                 return CreateTokenResponse($"{apiName}-token");
             });
             tokenEndpoints.Add(tokenEndpoint);
@@ -98,13 +98,13 @@ public class OAuth2ClientCredentialsRegistrationTests
         using var secondOrdersResponse = await ordersClient.GetAsync("https://orders.example.com/orders");
         using var secondBillingResponse = await billingClient.GetAsync("https://billing.example.com/invoices");
 
-        Assert.Equal(new[] { "OrdersApi-token", "BillingApi-token", "OrdersApi-token", "BillingApi-token" }, receivedTokens);
-        Assert.All(tokenEndpoints, endpoint => Assert.Equal(1, endpoint.RequestCount));
-        Assert.Equal(new[] { "BillingApi", "OrdersApi" }, cache.Headers.Keys.Order());
+        receivedTokens.Should().Equal(new[] { "OrdersApi-token", "BillingApi-token", "OrdersApi-token", "BillingApi-token" });
+        Assert.All(tokenEndpoints, endpoint => endpoint.RequestCount.Should().Be(1));
+        cache.Headers.Keys.Order().Should().Equal(new[] { "BillingApi", "OrdersApi" });
     }
 
     [Fact]
-    public async Task RegisteredHandler_WithCustomUnauthenticatedPredicate_ShouldRefreshTokenAndRetryRequest()
+    public async Task RegisteredHandlerWithCustomUnauthenticatedPredicateShouldRefreshTokenAndRetryRequest()
     {
         var tokenEndpoint = new CallbackHttpMessageHandler((_, count) => CreateTokenResponse($"token-{count}"));
         var receivedTokens = new List<string?>();
@@ -130,14 +130,14 @@ public class OAuth2ClientCredentialsRegistrationTests
 
         using var response = await client.GetAsync("https://orders.example.com/orders");
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal(new[] { "token-1", "token-2" }, receivedTokens);
-        Assert.Equal(2, tokenEndpoint.RequestCount);
-        Assert.Equal(2, targetApi.RequestCount);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        receivedTokens.Should().Equal(new[] { "token-1", "token-2" });
+        tokenEndpoint.RequestCount.Should().Be(2);
+        targetApi.RequestCount.Should().Be(2);
     }
 
     [Fact]
-    public async Task RegisteredHandler_WithInterceptorDependenciesAndCacheKeyBuilder_ShouldCacheTokensPerTenant()
+    public async Task RegisteredHandlerWithInterceptorDependenciesAndCacheKeyBuilderShouldCacheTokensPerTenant()
     {
         var cache = new InterceptorCache();
         var tokenEndpoint = new CallbackHttpMessageHandler((_, count) => CreateTokenResponse($"token-{count}"));
@@ -175,9 +175,9 @@ public class OAuth2ClientCredentialsRegistrationTests
         httpContextAccessor.HttpContext.Request.Headers["X-Tenant"] = "tenant-b";
         using var otherTenantResponse = await client.GetAsync("https://orders.example.com/orders");
 
-        Assert.Equal(new[] { "token-1", "token-1", "token-2" }, receivedTokens);
-        Assert.Equal(2, tokenEndpoint.RequestCount);
-        Assert.Equal(new[] { "OrdersApi_tenant-a", "OrdersApi_tenant-b" }, cache.Headers.Keys.Order());
+        receivedTokens.Should().Equal(new[] { "token-1", "token-1", "token-2" });
+        tokenEndpoint.RequestCount.Should().Be(2);
+        cache.Headers.Keys.Order().Should().Equal(new[] { "OrdersApi_tenant-a", "OrdersApi_tenant-b" });
     }
 
     private static HttpResponseMessage CreateTokenResponse(string accessToken) => new(HttpStatusCode.OK)
@@ -220,11 +220,11 @@ public class OAuth2ClientCredentialsRegistrationTests
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             RequestCount++;
-            Assert.Equal(HttpMethod.Post, request.Method);
-            Assert.Equal(new Uri("https://identity.example.com/token"), request.RequestUri);
-            Assert.Equal("Basic", request.Headers.Authorization?.Scheme);
-            Assert.Equal("configured", Assert.Single(request.Headers.GetValues("X-Token-Client")));
-            Assert.Contains("grant_type=client_credentials", await request.Content!.ReadAsStringAsync(cancellationToken));
+            request.Method.Should().Be(HttpMethod.Post);
+            request.RequestUri.Should().Be(new Uri("https://identity.example.com/token"));
+            (request.Headers.Authorization?.Scheme).Should().Be("Basic");
+            request.Headers.GetValues("X-Token-Client").Should().ContainSingle().Should().Be("configured");
+            (await request.Content!.ReadAsStringAsync(cancellationToken)).Should().Contain("grant_type=client_credentials");
 
             return new HttpResponseMessage(HttpStatusCode.OK)
             {
@@ -243,7 +243,7 @@ public class OAuth2ClientCredentialsRegistrationTests
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            Assert.False(request.Headers.Contains("X-Token-Client"));
+            request.Headers.Contains("X-Token-Client").Should().BeFalse();
             AuthorizationScheme = request.Headers.Authorization?.Scheme;
             AuthorizationParameter = request.Headers.Authorization?.Parameter;
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));

@@ -1,5 +1,5 @@
-using AuthorizationInterceptor.Extensions.Abstractions.Headers;
 using System.Collections.Concurrent;
+using AuthorizationInterceptor.Extensions.Abstractions.Headers;
 
 namespace AuthorizationInterceptor.Utils;
 

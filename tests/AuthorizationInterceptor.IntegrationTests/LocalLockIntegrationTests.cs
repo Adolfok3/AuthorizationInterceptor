@@ -1,6 +1,7 @@
 using AuthorizationInterceptor.Extensions.Abstractions.Options;
 using AuthorizationInterceptor.Extensions.MemoryCache.Extensions;
 using AuthorizationInterceptor.IntegrationTests.Infrastructure;
+using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AuthorizationInterceptor.IntegrationTests;
@@ -10,7 +11,7 @@ public class LocalLockIntegrationTests
     private static readonly TimeSpan AuthDelay = TimeSpan.FromMilliseconds(200);
 
     [Fact]
-    public async Task LocalLock_ConcurrentRequests_ShouldAuthenticateOnce()
+    public async Task LocalLockConcurrentRequestsShouldAuthenticateOnce()
     {
         //Arrange
         await using var target = await TargetApi.StartAsync(AuthDelay);
@@ -24,12 +25,12 @@ public class LocalLockIntegrationTests
         var responses = await Concurrency.FireConcurrentGetDataAsync(instance.Client, 50);
 
         //Assert
-        Assert.All(responses, response => Assert.True(response.IsSuccessStatusCode));
-        Assert.Equal(1, target.Counter.Count);
+        Assert.All(responses, response => response.IsSuccessStatusCode.Should().BeTrue());
+        target.Counter.Count.Should().Be(1);
     }
 
     [Fact]
-    public async Task NoLock_ConcurrentRequests_ShouldAuthenticateMoreThanOnce()
+    public async Task NoLockConcurrentRequestsShouldAuthenticateMoreThanOnce()
     {
         //Arrange
         // Control: without any lock, concurrent callers that all miss the cold cache each authenticate.
@@ -45,12 +46,12 @@ public class LocalLockIntegrationTests
         var responses = await Concurrency.FireConcurrentGetDataAsync(instance.Client, 50);
 
         //Assert
-        Assert.All(responses, response => Assert.True(response.IsSuccessStatusCode));
-        Assert.True(target.Counter.Count > 1, $"expected more than one login without a lock, got {target.Counter.Count}");
+        Assert.All(responses, response => response.IsSuccessStatusCode.Should().BeTrue());
+        (target.Counter.Count > 1).Should().BeTrue($"expected more than one login without a lock, got {target.Counter.Count}");
     }
 
     [Fact]
-    public async Task LocalLockOnly_AcrossInstances_ShouldAuthenticateOncePerInstance()
+    public async Task LocalLockOnlyAcrossInstancesShouldAuthenticateOncePerInstance()
     {
         //Arrange
         // Control for the distributed scenario, but Docker-free: each instance keeps its own memory cache and
@@ -73,8 +74,8 @@ public class LocalLockIntegrationTests
             var responses = perInstance.SelectMany(responses => responses).ToArray();
 
             //Assert
-            Assert.All(responses, response => Assert.True(response.IsSuccessStatusCode));
-            Assert.Equal(instanceCount, target.Counter.Count);
+            Assert.All(responses, response => response.IsSuccessStatusCode.Should().BeTrue());
+            target.Counter.Count.Should().Be(instanceCount);
         }
         finally
         {

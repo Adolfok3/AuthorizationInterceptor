@@ -1,5 +1,5 @@
-﻿using AuthorizationInterceptor.Extensions.Abstractions.Headers;
-using System.Text.Json;
+﻿using System.Text.Json;
+using AuthorizationInterceptor.Extensions.Abstractions.Headers;
 
 namespace AuthorizationInterceptor.Extensions.Abstractions.Json;
 
@@ -13,7 +13,7 @@ public static class AuthorizationHeadersJsonSerializer
     /// </summary>
     public static JsonSerializerOptions DefaultOptions { get; } = new()
     {
-        Converters = { new AuthorizationHeadersJsonConverter() }
+        Converters = { new AuthorizationHeadersJsonConverter() },
     };
 
     /// <summary>

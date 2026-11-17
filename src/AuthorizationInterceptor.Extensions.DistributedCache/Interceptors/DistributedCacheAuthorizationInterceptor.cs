@@ -1,4 +1,5 @@
-﻿using AuthorizationInterceptor.Extensions.Abstractions.Headers;
+﻿using System.Globalization;
+using AuthorizationInterceptor.Extensions.Abstractions.Headers;
 using AuthorizationInterceptor.Extensions.Abstractions.Interceptors;
 using AuthorizationInterceptor.Extensions.Abstractions.Json;
 using Microsoft.Extensions.Caching.Distributed;
@@ -28,7 +29,7 @@ internal sealed class DistributedCacheAuthorizationInterceptor(IDistributedCache
         var data = AuthorizationHeadersJsonSerializer.Serialize(newHeaders);
         var options = new DistributedCacheEntryOptions
         {
-            AbsoluteExpirationRelativeToNow = newHeaders.GetRealExpiration()
+            AbsoluteExpirationRelativeToNow = newHeaders.GetRealExpiration(),
         };
 
         await cache.SetStringAsync(string.Format(CacheKey, key), data, options, cancellationToken);

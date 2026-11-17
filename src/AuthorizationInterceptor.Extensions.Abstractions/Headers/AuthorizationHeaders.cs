@@ -6,6 +6,31 @@
 public class AuthorizationHeaders : Dictionary<string, string>
 {
     /// <summary>
+    /// Initializes a new instance of the <see cref="AuthorizationHeaders"/> class with an optional expiration timespan.
+    /// </summary>
+    /// <param name="expiresIn">The optional expiration timespan for the authorization data.</param>
+    public AuthorizationHeaders(TimeSpan? expiresIn = null)
+    {
+        ExpiresIn = expiresIn;
+        AuthenticatedAt = DateTimeOffset.UtcNow;
+    }
+
+#pragma warning disable S1144 // Used for serialization purposes, not directly invoked in the codebase.
+    private AuthorizationHeaders(OAuthHeaders oAuthHeaders)
+#pragma warning restore S1144 // Used for serialization purposes, not directly invoked in the codebase.
+    {
+        AuthenticatedAt = DateTimeOffset.UtcNow;
+        OAuthHeaders = oAuthHeaders;
+        ExpiresIn = oAuthHeaders.GetRealTimeExpiration();
+
+        Add("Authorization", $"{oAuthHeaders.TokenType} {oAuthHeaders.AccessToken}");
+    }
+
+    private AuthorizationHeaders()
+    {
+    }
+
+    /// <summary>
     /// Get auth headers in an OAuth settings
     /// </summary>
     public OAuthHeaders? OAuthHeaders { get; private set; }
@@ -26,22 +51,18 @@ public class AuthorizationHeaders : Dictionary<string, string>
     /// </value>
     public DateTimeOffset AuthenticatedAt { get; private set; }
 
+    public static implicit operator AuthorizationHeaders(OAuthHeaders headers)
+    {
+        headers.Validate();
+        return [with(headers)];
+    }
+
     /// <summary>
     /// Calculate the real expiration time
     /// </summary>
     /// <returns>Returns the real expiration time relative to now</returns>
     public TimeSpan? GetRealExpiration()
         => ExpiresIn - (DateTimeOffset.UtcNow - AuthenticatedAt);
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="AuthorizationHeaders"/> class with an optional expiration timespan.
-    /// </summary>
-    /// <param name="expiresIn">The optional expiration timespan for the authorization data.</param>
-    public AuthorizationHeaders(TimeSpan? expiresIn = null)
-    {
-        ExpiresIn = expiresIn;
-        AuthenticatedAt = DateTimeOffset.UtcNow;
-    }
 
     /// <summary>
     /// Determines if the headers are still valid based on their expiration time.
@@ -56,24 +77,5 @@ public class AuthorizationHeaders : Dictionary<string, string>
 
         var realExpiration = TimeSpan.FromSeconds(OAuthHeaders.ExpiresIn.Value);
         return (realExpiration - (DateTimeOffset.UtcNow - AuthenticatedAt)) > TimeSpan.Zero;
-    }
-
-    public static implicit operator AuthorizationHeaders(OAuthHeaders headers)
-    {
-        headers.Validate();
-        return new AuthorizationHeaders(headers);
-    }
-
-    private AuthorizationHeaders(OAuthHeaders oAuthHeaders)
-    {
-        AuthenticatedAt = DateTimeOffset.UtcNow;
-        OAuthHeaders = oAuthHeaders;
-        ExpiresIn = oAuthHeaders.GetRealTimeExpiration();
-
-        Add("Authorization", $"{oAuthHeaders.TokenType} {oAuthHeaders.AccessToken}");
-    }
-
-    private AuthorizationHeaders()
-    {
     }
 }

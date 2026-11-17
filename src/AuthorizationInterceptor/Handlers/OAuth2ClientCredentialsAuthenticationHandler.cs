@@ -1,11 +1,11 @@
-using AuthorizationInterceptor.Extensions.Abstractions.Handlers;
-using AuthorizationInterceptor.Extensions.Abstractions.Headers;
-using AuthorizationInterceptor.Options;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json.Serialization;
+using AuthorizationInterceptor.Extensions.Abstractions.Handlers;
+using AuthorizationInterceptor.Extensions.Abstractions.Headers;
+using AuthorizationInterceptor.Options;
 
 namespace AuthorizationInterceptor.Handlers;
 
@@ -34,6 +34,14 @@ internal sealed class OAuth2ClientCredentialsAuthenticationHandler(IHttpClientFa
         return new OAuthHeaders(token.AccessToken, token.TokenType, token.ExpiresIn);
     }
 
+    private static AuthenticationHeaderValue CreateBasicAuthorizationHeader(string clientId, string clientSecret)
+    {
+        var userName = WebUtility.UrlEncode(clientId);
+        var password = WebUtility.UrlEncode(clientSecret);
+        var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{userName}:{password}"));
+        return new AuthenticationHeaderValue("Basic", credentials);
+    }
+
     private IEnumerable<KeyValuePair<string, string>> BuildFormParameters()
     {
         yield return new("grant_type", "client_credentials");
@@ -49,14 +57,6 @@ internal sealed class OAuth2ClientCredentialsAuthenticationHandler(IHttpClientFa
 
         foreach (var parameter in options.AdditionalParameters)
             yield return parameter;
-    }
-
-    private static AuthenticationHeaderValue CreateBasicAuthorizationHeader(string clientId, string clientSecret)
-    {
-        var userName = WebUtility.UrlEncode(clientId);
-        var password = WebUtility.UrlEncode(clientSecret);
-        var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{userName}:{password}"));
-        return new AuthenticationHeaderValue("Basic", credentials);
     }
 
     private sealed record OAuth2ClientCredentialsTokenResponse(

@@ -1,7 +1,8 @@
-﻿using AuthorizationInterceptor.Extensions.Abstractions.Headers;
+﻿using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using AuthorizationInterceptor.Extensions.Abstractions.Headers;
 
 namespace AuthorizationInterceptor.Extensions.Abstractions.Json;
 
@@ -32,14 +33,14 @@ internal class AuthorizationHeadersJsonConverter : JsonConverter<AuthorizationHe
                     if (string.IsNullOrEmpty(expiresIn))
                         continue;
 
-                    SetProperty(authorizationHeaders, "ExpiresIn", TimeSpan.Parse(expiresIn));
+                    SetProperty(authorizationHeaders, "ExpiresIn", TimeSpan.Parse(expiresIn, CultureInfo.InvariantCulture));
                     continue;
                 case "AuthenticatedAt":
                     var authenticatedAt = reader.GetString();
                     if (string.IsNullOrEmpty(authenticatedAt))
                         continue;
 
-                    SetProperty(authorizationHeaders, "AuthenticatedAt", DateTimeOffset.Parse(authenticatedAt));
+                    SetProperty(authorizationHeaders, "AuthenticatedAt", DateTimeOffset.Parse(authenticatedAt, CultureInfo.InvariantCulture));
                     continue;
                 case "OAuthHeaders":
                     SetOAuthHeaders(ref reader, options, authorizationHeaders);
@@ -73,9 +74,9 @@ internal class AuthorizationHeadersJsonConverter : JsonConverter<AuthorizationHe
         writer.WriteStartObject("OAuthHeaders");
         writer.WriteString("AccessToken", value.OAuthHeaders?.AccessToken);
         writer.WriteString("TokenType", value.OAuthHeaders?.TokenType);
-        writer.WriteString("ExpiresIn", value.OAuthHeaders?.ExpiresIn?.ToString());
+        writer.WriteString("ExpiresIn", value.OAuthHeaders?.ExpiresIn?.ToString(CultureInfo.InvariantCulture));
         writer.WriteString("RefreshToken", value.OAuthHeaders?.RefreshToken);
-        writer.WriteString("ExpiresInRefreshToken", value.OAuthHeaders?.ExpiresInRefreshToken?.ToString());
+        writer.WriteString("ExpiresInRefreshToken", value.OAuthHeaders?.ExpiresInRefreshToken?.ToString(CultureInfo.InvariantCulture));
         writer.WriteEndObject();
 
         writer.WriteEndObject();
@@ -84,7 +85,6 @@ internal class AuthorizationHeadersJsonConverter : JsonConverter<AuthorizationHe
     private static void SetOAuthHeaders(ref Utf8JsonReader reader, JsonSerializerOptions options, AuthorizationHeaders authorizationHeaders)
     {
         var oAuthHeadersJson = JsonSerializer.Deserialize<JsonElement>(ref reader, options);
-        
         var accessToken = RequireStringProperty(oAuthHeadersJson, "AccessToken");
         if (string.IsNullOrEmpty(accessToken))
             return;
@@ -94,10 +94,10 @@ internal class AuthorizationHeadersJsonConverter : JsonConverter<AuthorizationHe
             return;
 
         var expiresInValue = RequireStringProperty(oAuthHeadersJson, "ExpiresIn");
-        double? expiresIn = string.IsNullOrEmpty(expiresInValue) ? null : double.Parse(expiresInValue);
+        double? expiresIn = string.IsNullOrEmpty(expiresInValue) ? null : double.Parse(expiresInValue, CultureInfo.InvariantCulture);
         var refreshToken = RequireStringProperty(oAuthHeadersJson, "RefreshToken");
         var expiresInRefreshTokenString = RequireStringProperty(oAuthHeadersJson, "ExpiresInRefreshToken");
-        double? expiresInRefreshToken = string.IsNullOrEmpty(expiresInRefreshTokenString) ? null : double.Parse(expiresInRefreshTokenString);
+        double? expiresInRefreshToken = string.IsNullOrEmpty(expiresInRefreshTokenString) ? null : double.Parse(expiresInRefreshTokenString, CultureInfo.InvariantCulture);
         SetProperty(authorizationHeaders, "OAuthHeaders", new OAuthHeaders(accessToken, tokenType, expiresIn, refreshToken, expiresInRefreshToken));
     }
 

@@ -27,7 +27,7 @@ internal class MemoryCacheInterceptor(IMemoryCache memoryCache) : IAuthorization
         memoryCache.Set(string.Format(CacheKey, key), newHeaders, new MemoryCacheEntryOptions
         {
             AbsoluteExpirationRelativeToNow = newHeaders.GetRealExpiration(),
-            Priority = CacheItemPriority.NeverRemove
+            Priority = CacheItemPriority.NeverRemove,
         });
 
         return ValueTask.CompletedTask;

@@ -5,6 +5,7 @@ using AuthorizationInterceptor.Extensions.Abstractions.Options;
 using AuthorizationInterceptor.Strategies;
 using AuthorizationInterceptor.Tests.Utils;
 using AuthorizationInterceptor.Utils;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 
 namespace AuthorizationInterceptor.Tests.Strategies;
@@ -20,7 +21,7 @@ public class AuthorizationInterceptorStrategyDistributedLockTests
     }
 
     [Fact]
-    public async Task GetHeadersAsync_WithDistributedLock_WhenConcurrentInstanceRefreshedCache_ShouldSkipAuthentication()
+    public async Task GetHeadersAsyncWithDistributedLockWhenConcurrentInstanceRefreshedCacheShouldSkipAuthentication()
     {
         //Arrange
         var cache = new MockCachingAuthorizationInterceptor();
@@ -35,14 +36,14 @@ public class AuthorizationInterceptorStrategyDistributedLockTests
         var headers = await strategy.GetHeadersAsync("test", authentication, CancellationToken.None);
 
         //Assert
-        Assert.Same(refreshedByOtherInstance, headers);
-        Assert.Equal(0, authentication.Calls);
-        Assert.Equal(1, mockLock.AcquireCount);
-        Assert.Equal("authorizationinterceptor:test", mockLock.LastLockName);
+        headers.Should().BeSameAs(refreshedByOtherInstance);
+        authentication.Calls.Should().Be(0);
+        mockLock.AcquireCount.Should().Be(1);
+        mockLock.LastLockName.Should().Be("authorizationinterceptor:test");
     }
 
     [Fact]
-    public async Task GetHeadersAsync_WithDistributedLock_WhenCacheStillEmptyAfterLock_ShouldAuthenticate()
+    public async Task GetHeadersAsyncWithDistributedLockWhenCacheStillEmptyAfterLockShouldAuthenticate()
     {
         //Arrange
         var cache = new MockCachingAuthorizationInterceptor();
@@ -55,13 +56,13 @@ public class AuthorizationInterceptorStrategyDistributedLockTests
         var headers = await strategy.GetHeadersAsync("test", authentication, CancellationToken.None);
 
         //Assert
-        Assert.NotNull(headers);
-        Assert.Equal(1, authentication.Calls);
-        Assert.Equal(1, mockLock.AcquireCount);
+        headers.Should().NotBeNull();
+        authentication.Calls.Should().Be(1);
+        mockLock.AcquireCount.Should().Be(1);
     }
 
     [Fact]
-    public async Task UpdateHeadersAsync_WithDistributedLock_WhenConcurrentInstanceRefreshedCache_ShouldSkipAuthentication()
+    public async Task UpdateHeadersAsyncWithDistributedLockWhenConcurrentInstanceRefreshedCacheShouldSkipAuthentication()
     {
         //Arrange
         var expiredHeaders = MockAuthorizationHeaders.CreateHeaders();
@@ -78,12 +79,12 @@ public class AuthorizationInterceptorStrategyDistributedLockTests
         var headers = await strategy.UpdateHeadersAsync("test", expiredHeaders, authentication, CancellationToken.None);
 
         //Assert
-        Assert.Same(refreshedByOtherInstance, headers);
-        Assert.Equal(0, authentication.Calls);
+        headers.Should().BeSameAs(refreshedByOtherInstance);
+        authentication.Calls.Should().Be(0);
     }
 
     [Fact]
-    public async Task UpdateHeadersAsync_WithDistributedLock_WhenCacheHeadersAreNotNewerThanExpired_ShouldAuthenticate()
+    public async Task UpdateHeadersAsyncWithDistributedLockWhenCacheHeadersAreNotNewerThanExpiredShouldAuthenticate()
     {
         //Arrange
         // Another instance's cache entry predates the headers rejected by the target API, so the double-check
@@ -102,12 +103,12 @@ public class AuthorizationInterceptorStrategyDistributedLockTests
         var headers = await strategy.UpdateHeadersAsync("test", expiredHeaders, authentication, CancellationToken.None);
 
         //Assert
-        Assert.NotNull(headers);
-        Assert.Equal(1, authentication.Calls);
+        headers.Should().NotBeNull();
+        authentication.Calls.Should().Be(1);
     }
 
     [Fact]
-    public async Task GetHeadersAsync_WithNoInterceptors_ShouldBypassDistributedLock()
+    public async Task GetHeadersAsyncWithNoInterceptorsShouldBypassDistributedLock()
     {
         //Arrange
         var mockLock = new MockDistributedLock();
@@ -120,8 +121,8 @@ public class AuthorizationInterceptorStrategyDistributedLockTests
         var headers = await strategy.GetHeadersAsync("test", authentication, CancellationToken.None);
 
         //Assert
-        Assert.NotNull(headers);
-        Assert.Equal(0, mockLock.AcquireCount);
+        headers.Should().NotBeNull();
+        mockLock.AcquireCount.Should().Be(0);
         await authentication.Received(1).AuthenticateAsync(null, Arg.Any<CancellationToken>());
     }
 }

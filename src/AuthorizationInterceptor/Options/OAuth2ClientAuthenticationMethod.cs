@@ -15,5 +15,5 @@ public enum OAuth2ClientAuthenticationMethod
     /// Sends <c>client_id</c> and <c>client_secret</c> in the form-encoded request body.
     /// Use this only when required by the authorization server.
     /// </summary>
-    ClientSecretPost = 1
+    ClientSecretPost = 1,
 }

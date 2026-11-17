@@ -1,16 +1,17 @@
-using AuthorizationInterceptor.Extensions.Abstractions.Headers;
-using AuthorizationInterceptor.Handlers;
-using AuthorizationInterceptor.Options;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using AuthorizationInterceptor.Extensions.Abstractions.Headers;
+using AuthorizationInterceptor.Handlers;
+using AuthorizationInterceptor.Options;
+using FluentAssertions;
 
 namespace AuthorizationInterceptor.Tests.Handlers;
 
 public class OAuth2ClientCredentialsAuthenticationHandlerTests
 {
     [Fact]
-    public async Task AuthenticateAsync_WithClientSecretBasic_ShouldRequestAndReturnToken()
+    public async Task AuthenticateAsyncWithClientSecretBasicShouldRequestAndReturnToken()
     {
         var transport = new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
@@ -27,23 +28,23 @@ public class OAuth2ClientCredentialsAuthenticationHandlerTests
 
         var headers = await handler.AuthenticateAsync(null, CancellationToken.None);
 
-        Assert.NotNull(headers);
-        Assert.Equal("Bearer access-token", headers["Authorization"]);
-        Assert.Equal(3600, headers.OAuthHeaders?.ExpiresIn);
-        Assert.Equal(HttpMethod.Post, transport.Method);
-        Assert.Equal(new Uri("https://identity.example.com/token"), transport.RequestUri);
-        Assert.Equal("Basic", transport.AuthorizationScheme);
-        Assert.Equal("application/x-www-form-urlencoded", transport.ContentType);
-        Assert.Equal("my+client:s%3Aecret", DecodeBasicCredentials(transport.AuthorizationParameter!));
+        headers.Should().NotBeNull();
+        headers["Authorization"].Should().Be("Bearer access-token");
+        (headers.OAuthHeaders?.ExpiresIn).Should().Be(3600);
+        transport.Method.Should().Be(HttpMethod.Post);
+        transport.RequestUri.Should().Be(new Uri("https://identity.example.com/token"));
+        transport.AuthorizationScheme.Should().Be("Basic");
+        transport.ContentType.Should().Be("application/x-www-form-urlencoded");
+        DecodeBasicCredentials(transport.AuthorizationParameter!).Should().Be("my+client:s%3Aecret");
         var form = ParseForm(transport.Body);
-        Assert.Equal("client_credentials", form["grant_type"]);
-        Assert.Equal("orders.read orders.write", form["scope"]);
-        Assert.Equal("orders-api", form["audience"]);
-        Assert.Equal(3, form.Count);
+        form["grant_type"].Should().Be("client_credentials");
+        form["scope"].Should().Be("orders.read orders.write");
+        form["audience"].Should().Be("orders-api");
+        form.Count.Should().Be(3);
     }
 
     [Fact]
-    public async Task AuthenticateAsync_WithClientSecretPost_ShouldSendCredentialsInBody()
+    public async Task AuthenticateAsyncWithClientSecretPostShouldSendCredentialsInBody()
     {
         var transport = new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
@@ -54,23 +55,23 @@ public class OAuth2ClientCredentialsAuthenticationHandlerTests
 
         var headers = await handler.AuthenticateAsync(null, CancellationToken.None);
 
-        Assert.NotNull(headers);
-        Assert.Equal("Bearer access-token", headers["Authorization"]);
-        Assert.Null(headers.ExpiresIn);
-        Assert.Null(headers.OAuthHeaders?.ExpiresIn);
-        Assert.Null(transport.AuthorizationScheme);
-        Assert.Equal("application/x-www-form-urlencoded", transport.ContentType);
+        headers.Should().NotBeNull();
+        headers["Authorization"].Should().Be("Bearer access-token");
+        headers.ExpiresIn.Should().BeNull();
+        (headers.OAuthHeaders?.ExpiresIn).Should().BeNull();
+        transport.AuthorizationScheme.Should().BeNull();
+        transport.ContentType.Should().Be("application/x-www-form-urlencoded");
         var form = ParseForm(transport.Body);
-        Assert.Equal("client_credentials", form["grant_type"]);
-        Assert.Equal("client-id", form["client_id"]);
-        Assert.Equal("client-secret", form["client_secret"]);
-        Assert.Equal(3, form.Count);
+        form["grant_type"].Should().Be("client_credentials");
+        form["client_id"].Should().Be("client-id");
+        form["client_secret"].Should().Be("client-secret");
+        form.Count.Should().Be(3);
     }
 
     [Theory]
     [InlineData(OAuth2ClientAuthenticationMethod.ClientSecretBasic)]
     [InlineData(OAuth2ClientAuthenticationMethod.ClientSecretPost)]
-    public async Task AuthenticateAsync_WithSpecialCharacters_ShouldEncodeCredentialsAndAdditionalParameters(
+    public async Task AuthenticateAsyncWithSpecialCharactersShouldEncodeCredentialsAndAdditionalParameters(
         OAuth2ClientAuthenticationMethod authenticationMethod)
     {
         var transport = new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
@@ -87,24 +88,24 @@ public class OAuth2ClientCredentialsAuthenticationHandlerTests
 
         await handler.AuthenticateAsync(null, CancellationToken.None);
 
-        Assert.Equal("application/x-www-form-urlencoded", transport.ContentType);
+        transport.ContentType.Should().Be("application/x-www-form-urlencoded");
         var form = ParseForm(transport.Body);
-        Assert.Equal("client_credentials", form["grant_type"]);
-        Assert.Equal("https://api.example.com/items?name=a+b&lang=pt BR", form["resource"]);
-        Assert.False(form.ContainsKey("scope"));
+        form["grant_type"].Should().Be("client_credentials");
+        form["resource"].Should().Be("https://api.example.com/items?name=a+b&lang=pt BR");
+        form.ContainsKey("scope").Should().BeFalse();
 
         if (authenticationMethod == OAuth2ClientAuthenticationMethod.ClientSecretBasic)
         {
-            Assert.Equal("Basic", transport.AuthorizationScheme);
-            Assert.Equal("client+%2B%3A%26%C3%A9:secret+%2B%3A%26%E9%9B%AA", DecodeBasicCredentials(transport.AuthorizationParameter!));
-            Assert.Equal(2, form.Count);
+            transport.AuthorizationScheme.Should().Be("Basic");
+            DecodeBasicCredentials(transport.AuthorizationParameter!).Should().Be("client+%2B%3A%26%C3%A9:secret+%2B%3A%26%E9%9B%AA");
+            form.Count.Should().Be(2);
         }
         else
         {
-            Assert.Null(transport.AuthorizationScheme);
-            Assert.Equal("client +:&é", form["client_id"]);
-            Assert.Equal("secret +:&雪", form["client_secret"]);
-            Assert.Equal(4, form.Count);
+            transport.AuthorizationScheme.Should().BeNull();
+            form["client_id"].Should().Be("client +:&é");
+            form["client_secret"].Should().Be("secret +:&雪");
+            form.Count.Should().Be(4);
         }
     }
 
@@ -112,7 +113,7 @@ public class OAuth2ClientCredentialsAuthenticationHandlerTests
     [InlineData(HttpStatusCode.BadRequest)]
     [InlineData(HttpStatusCode.Unauthorized)]
     [InlineData(HttpStatusCode.InternalServerError)]
-    public async Task AuthenticateAsync_WhenEndpointRejectsRequest_ShouldThrowHttpRequestException(HttpStatusCode statusCode)
+    public async Task AuthenticateAsyncWhenEndpointRejectsRequestShouldThrowHttpRequestException(HttpStatusCode statusCode)
     {
         var transport = new RecordingHandler(_ => new HttpResponseMessage(statusCode)
         {
@@ -122,7 +123,7 @@ public class OAuth2ClientCredentialsAuthenticationHandlerTests
 
         var action = async () => await handler.AuthenticateAsync(null, CancellationToken.None);
 
-        var exception = await Assert.ThrowsAsync<HttpRequestException>(action);
+        var exception = await action.Should().ThrowExactlyAsync<HttpRequestException>();
         Assert.Equal(statusCode, exception.StatusCode);
     }
 
@@ -136,7 +137,7 @@ public class OAuth2ClientCredentialsAuthenticationHandlerTests
     [InlineData("{\"access_token\":\"token\",\"token_type\":null}", "token_type")]
     [InlineData("{\"access_token\":\"token\",\"token_type\":\"\"}", "token_type")]
     [InlineData("{\"access_token\":\"token\",\"token_type\":\" \\t\\r\\n\"}", "token_type")]
-    public async Task AuthenticateAsync_WhenRequiredResponsePropertyIsMissingOrInvalid_ShouldThrow(string json, string property)
+    public async Task AuthenticateAsyncWhenRequiredResponsePropertyIsMissingOrInvalidShouldThrow(string json, string property)
     {
         var transport = new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
@@ -146,15 +147,15 @@ public class OAuth2ClientCredentialsAuthenticationHandlerTests
 
         var action = async () => await handler.AuthenticateAsync(null, CancellationToken.None);
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(action);
-        Assert.Contains(property, exception.Message);
+        var exception = await action.Should().ThrowExactlyAsync<InvalidOperationException>();
+        exception.Message.Should().Contain(property);
     }
 
     [Theory]
     [InlineData("")]
     [InlineData("not-json")]
     [InlineData("{\"access_token\":")]
-    public async Task AuthenticateAsync_WhenResponseIsInvalidJson_ShouldThrowJsonException(string json)
+    public async Task AuthenticateAsyncWhenResponseIsInvalidJsonShouldThrowJsonException(string json)
     {
         var transport = new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
@@ -164,13 +165,13 @@ public class OAuth2ClientCredentialsAuthenticationHandlerTests
 
         var action = async () => await handler.AuthenticateAsync(null, CancellationToken.None);
 
-        await Assert.ThrowsAsync<JsonException>(action);
+        await action.Should().ThrowExactlyAsync<JsonException>();
     }
 
     [Theory]
     [InlineData("null", null)]
     [InlineData("120.5", 120.5)]
-    public async Task AuthenticateAsync_ShouldPreserveTokenTypeAndExpiration(string expirationJson, double? expiresIn)
+    public async Task AuthenticateAsyncShouldPreserveTokenTypeAndExpiration(string expirationJson, double? expiresIn)
     {
         var transport = new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
@@ -182,16 +183,16 @@ public class OAuth2ClientCredentialsAuthenticationHandlerTests
 
         var headers = await handler.AuthenticateAsync(null, CancellationToken.None);
 
-        Assert.NotNull(headers);
-        Assert.Equal("Custom token", headers["Authorization"]);
-        Assert.NotNull(headers.OAuthHeaders);
-        Assert.Equal(expiresIn, headers.OAuthHeaders.ExpiresIn);
-        Assert.Equal(expiresIn.HasValue ? TimeSpan.FromSeconds(expiresIn.Value) : (TimeSpan?)null, headers.ExpiresIn);
-        Assert.Single(headers);
+        headers.Should().NotBeNull();
+        headers["Authorization"].Should().Be("Custom token");
+        headers.OAuthHeaders.Should().NotBeNull();
+        headers.OAuthHeaders.ExpiresIn.Should().Be(expiresIn);
+        headers.ExpiresIn.Should().Be(expiresIn.HasValue ? TimeSpan.FromSeconds(expiresIn.Value) : (TimeSpan?)null);
+        headers.Should().ContainSingle();
     }
 
     [Fact]
-    public async Task AuthenticateAsync_WithExpiredHeaders_ShouldAcquireNewClientCredentialsToken()
+    public async Task AuthenticateAsyncWithExpiredHeadersShouldAcquireNewClientCredentialsToken()
     {
         var transport = new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
@@ -202,27 +203,27 @@ public class OAuth2ClientCredentialsAuthenticationHandlerTests
 
         var headers = await handler.AuthenticateAsync(expiredHeaders, CancellationToken.None);
 
-        Assert.NotNull(headers);
-        Assert.Equal("Bearer new-token", headers["Authorization"]);
-        Assert.Equal("grant_type=client_credentials", transport.Body);
-        Assert.Equal("Bearer old-token", expiredHeaders["Authorization"]);
-        Assert.Null(headers.OAuthHeaders?.RefreshToken);
+        headers.Should().NotBeNull();
+        headers["Authorization"].Should().Be("Bearer new-token");
+        transport.Body.Should().Be("grant_type=client_credentials");
+        expiredHeaders["Authorization"].Should().Be("Bearer old-token");
+        (headers.OAuthHeaders?.RefreshToken).Should().BeNull();
     }
 
     [Fact]
-    public async Task AuthenticateAsync_WhenTransportFails_ShouldPropagateException()
+    public async Task AuthenticateAsyncWhenTransportFailsShouldPropagateException()
     {
         var failure = new HttpRequestException("Token endpoint unavailable.");
         var handler = CreateHandler(new RecordingHandler(_ => throw failure));
 
         var action = async () => await handler.AuthenticateAsync(null, CancellationToken.None);
 
-        var exception = await Assert.ThrowsAsync<HttpRequestException>(action);
-        Assert.Same(failure, exception);
+        var exception = await action.Should().ThrowExactlyAsync<HttpRequestException>();
+        exception.Should().BeSameAs(failure);
     }
 
     [Fact]
-    public async Task AuthenticateAsync_WhenCanceledDuringRequest_ShouldCancelTransport()
+    public async Task AuthenticateAsyncWhenCanceledDuringRequestShouldCancelTransport()
     {
         using var cancellation = new CancellationTokenSource();
         var requestStarted = new TaskCompletionSource<CancellationToken>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -240,9 +241,9 @@ public class OAuth2ClientCredentialsAuthenticationHandlerTests
             var transportCancellation = await requestStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
             cancellation.Cancel();
 
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(
-                () => authentication.WaitAsync(TimeSpan.FromSeconds(5)));
-            Assert.True(transportCancellation.IsCancellationRequested);
+            await (() => authentication.WaitAsync(TimeSpan.FromSeconds(5))).Should().ThrowAsync<OperationCanceledException>(
+);
+            transportCancellation.IsCancellationRequested.Should().BeTrue();
         }
         finally
         {

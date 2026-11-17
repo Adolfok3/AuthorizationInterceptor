@@ -1,32 +1,33 @@
 using AuthorizationInterceptor.Extensions.Abstractions.Options;
 using AuthorizationInterceptor.Options;
+using FluentAssertions;
 
 namespace AuthorizationInterceptor.Tests.Options;
 
 public class AuthorizationInterceptorOptionsTests
 {
     [Fact]
-    public void LockMode_ShouldDefaultToNone()
+    public void LockModeShouldDefaultToNone()
     {
         //Act
         var options = new AuthorizationInterceptorOptions();
 
         //Assert
-        Assert.Equal(AuthenticationLockMode.None, options.LockMode);
+        options.LockMode.Should().Be(AuthenticationLockMode.None);
     }
 
     [Fact]
-    public void DistributedLockTimeout_ShouldDefaultToNull()
+    public void DistributedLockTimeoutShouldDefaultToNull()
     {
         //Act
         var options = new AuthorizationInterceptorOptions();
 
         //Assert
-        Assert.Null(options.DistributedLockTimeout);
+        options.DistributedLockTimeout.Should().BeNull();
     }
 
     [Fact]
-    public void LockMode_ShouldAllowCombiningLocalAndDistributed()
+    public void LockModeShouldAllowCombiningLocalAndDistributed()
     {
         //Act
         var options = new AuthorizationInterceptorOptions
@@ -35,12 +36,12 @@ public class AuthorizationInterceptorOptionsTests
         };
 
         //Assert
-        Assert.True(options.LockMode.HasFlag(AuthenticationLockMode.Local));
-        Assert.True(options.LockMode.HasFlag(AuthenticationLockMode.Distributed));
+        options.LockMode.HasFlag(AuthenticationLockMode.Local).Should().BeTrue();
+        options.LockMode.HasFlag(AuthenticationLockMode.Distributed).Should().BeTrue();
     }
 
     [Fact]
-    public void DistributedLockTimeout_ShouldBeAssignable()
+    public void DistributedLockTimeoutShouldBeAssignable()
     {
         //Arrange
         var timeout = TimeSpan.FromSeconds(30);
@@ -49,6 +50,6 @@ public class AuthorizationInterceptorOptionsTests
         var options = new AuthorizationInterceptorOptions { DistributedLockTimeout = timeout };
 
         //Assert
-        Assert.Equal(timeout, options.DistributedLockTimeout);
+        options.DistributedLockTimeout.Should().Be(timeout);
     }
 }

@@ -8,7 +8,7 @@ namespace AuthorizationInterceptor.Extensions.MemoryCache.Tests.Extensions;
 public class AuthorizationInterceptorOptionsExtensionsTests
 {
     [Fact]
-    public void UseMemoryCacheInterceptor_WithoutOptions_ShouldAddSuccessfully()
+    public void UseMemoryCacheInterceptorWithoutOptionsShouldAddSuccessfully()
     {
         //Arrange
         var options = Substitute.For<IAuthorizationInterceptorOptions>();

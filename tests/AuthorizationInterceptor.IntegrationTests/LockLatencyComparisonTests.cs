@@ -3,6 +3,7 @@ using AuthorizationInterceptor.Extensions.DistributedCache.Extensions;
 using AuthorizationInterceptor.Extensions.MemoryCache.Extensions;
 using AuthorizationInterceptor.IntegrationTests.Infrastructure;
 using AuthorizationInterceptor.Options;
+using FluentAssertions;
 using Medallion.Threading;
 using Medallion.Threading.Redis;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,7 +23,7 @@ public class LockLatencyComparisonTests(RedisFixture redis, ITestOutputHelper ou
     private static readonly TimeSpan AuthDelay = TimeSpan.FromMilliseconds(200);
 
     [Fact]
-    public async Task Latency_SingleInstance_NoneVsLocal()
+    public async Task LatencySingleInstanceNoneVsLocal()
     {
         const int requests = 50;
         output.WriteLine($"Single instance, {requests} concurrent requests, auth delay {AuthDelay.TotalMilliseconds:F0}ms");
@@ -38,13 +39,13 @@ public class LockLatencyComparisonTests(RedisFixture redis, ITestOutputHelper ou
         Report(rows);
         MetricsReport.Write("lock-latency-single-instance.md", $"Lock latency — single instance, {requests} concurrent requests", rows);
 
-        Assert.All(none.Load.Responses.Concat(local.Load.Responses), response => Assert.True(response.IsSuccessStatusCode));
-        Assert.True(none.Logins > 1);
-        Assert.Equal(1, local.Logins);
+        Assert.All(none.Load.Responses.Concat(local.Load.Responses), response => response.IsSuccessStatusCode.Should().BeTrue());
+        (none.Logins > 1).Should().BeTrue();
+        local.Logins.Should().Be(1);
     }
 
     [SkippableFact]
-    public async Task Latency_AcrossInstances_NoneVsLocalVsDistributed()
+    public async Task LatencyAcrossInstancesNoneVsLocalVsDistributed()
     {
         Skip.IfNot(redis.IsAvailable, redis.SkipReason);
 
@@ -67,10 +68,10 @@ public class LockLatencyComparisonTests(RedisFixture redis, ITestOutputHelper ou
         Report(rows);
         MetricsReport.Write("lock-latency-across-instances.md", $"Lock latency — {instanceCount} instances × {requestsPerInstance} concurrent requests", rows);
 
-        Assert.True(none.Logins > 1);
-        Assert.Equal(instanceCount, local.Logins);
-        Assert.Equal(1, distributedOnly.Logins);
-        Assert.Equal(1, localAndDistributed.Logins);
+        (none.Logins > 1).Should().BeTrue();
+        local.Logins.Should().Be(instanceCount);
+        distributedOnly.Logins.Should().Be(1);
+        localAndDistributed.Logins.Should().Be(1);
     }
 
     private async Task<(int Logins, LoadResult Load)> RunSingleInstanceAsync(AuthenticationLockMode mode, int requests)

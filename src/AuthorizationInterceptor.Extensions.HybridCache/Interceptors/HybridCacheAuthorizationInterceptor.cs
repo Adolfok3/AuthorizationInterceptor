@@ -13,7 +13,8 @@ internal sealed class HybridCacheAuthorizationInterceptor(Microsoft.Extensions.C
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var data = await hybridCache.GetOrCreateAsync(string.Format(CacheKey, key),
+        var data = await hybridCache.GetOrCreateAsync(
+            string.Format(CacheKey, key),
             _ => ValueTask.FromResult<string?>(null),
             new HybridCacheEntryOptions { Flags = HybridCacheEntryFlags.DisableLocalCacheWrite | HybridCacheEntryFlags.DisableDistributedCacheWrite },
             cancellationToken: cancellationToken);
