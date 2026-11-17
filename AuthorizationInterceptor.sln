@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.9.34622.214
+# Visual Studio Version 18
+VisualStudioVersion = 18.13.12409.143 insiders
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AuthorizationInterceptor", "src\AuthorizationInterceptor\AuthorizationInterceptor.csproj", "{1B7ED06E-1A27-4019-B1B6-FF2FA4BA35C3}"
 EndProject
@@ -28,6 +28,15 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthorizationInterceptor.Extensions.HybridCache.Tests", "tests\AuthorizationInterceptor.Extensions.HybridCache.Tests\AuthorizationInterceptor.Extensions.HybridCache.Tests.csproj", "{95360C34-CA3E-47F7-825E-69E00AF42C71}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthorizationInterceptor.IntegrationTests", "tests\AuthorizationInterceptor.IntegrationTests\AuthorizationInterceptor.IntegrationTests.csproj", "{9F905C56-27D8-4DBF-81F9-2B2441889CE4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{990F5BD8-E267-4501-8459-494EB91767BD}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+		CHANGELOG.md = CHANGELOG.md
+		Directory.Build.props = Directory.Build.props
+		Directory.Packages.props = Directory.Packages.props
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

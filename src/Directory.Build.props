@@ -1,25 +1,25 @@
 <Project>
+	<Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
   <PropertyGroup>
-	<LangVersion>latest</LangVersion>
-  <ImplicitUsings>enable</ImplicitUsings>
-	<Nullable>enable</Nullable>
-	<Version>7.0.0</Version>
-	<TargetFrameworks>net10.0</TargetFrameworks>
-	<Title>Authorization Interceptor</Title>
-	<Authors>Adolfok3</Authors>
-	<Copyright>MIT</Copyright>
-	<PackageProjectUrl>https://github.com/Adolfok3/authorizationinterceptor</PackageProjectUrl>
-	<PackageIcon>icon.png</PackageIcon>
-	<PackageReadmeFile>README.md</PackageReadmeFile>
-	<RepositoryUrl>https://github.com/Adolfok3/authorizationinterceptor</RepositoryUrl>
-	<Description>A simple and lightweight .NET package designed to streamline HttpClient authenticated requests</Description>
-	<PackageTags>dotnet;c#;.net;core;authorization;authentication;interceptor;httpclient;rest;api;auth;headers;cache;memory;distributed;refit;request;response;anauthoriezed;</PackageTags>
-	<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-	<NuGetAudit>true</NuGetAudit>
-	<NuGetAuditMode>all</NuGetAuditMode>
-	<NuGetAuditLevel>moderate</NuGetAuditLevel>
-	<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+		<Authors>Adolfok3</Authors>
+		<Copyright>MIT</Copyright>
+		<PackageProjectUrl>https://github.com/Adolfok3/authorizationinterceptor</PackageProjectUrl>
+		<PackageIcon>icon.png</PackageIcon>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<RepositoryUrl>https://github.com/Adolfok3/authorizationinterceptor</RepositoryUrl>
+		<Description>A simple and lightweight .NET package designed to streamline HttpClient authenticated requests</Description>		<PackageTags>dotnet;c#;.net;core;authorization;authentication;interceptor;httpclient;rest;api;auth;headers;cache;memory;distributed;refit;request;response;anauthoriezed;</PackageTags>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
+	
+	<ItemGroup>
+		<PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" PrivateAssets="all" />
+		<PackageReference Include="Roslynator.Analyzers" PrivateAssets="all" />
+		<PackageReference Include="Roslynator.CodeAnalysis.Analyzers" PrivateAssets="all" />
+		<PackageReference Include="Roslynator.Formatting.Analyzers" PrivateAssets="all" />
+		<PackageReference Include="StyleCop.Analyzers" PrivateAssets="all" />
+		<PackageReference Include="Meziantou.Analyzer" PrivateAssets="all" />
+		<PackageReference Include="SonarAnalyzer.CSharp" PrivateAssets="all" />
+	</ItemGroup>
   
   <PropertyGroup Condition="'$(MSBuildProjectName)' == 'AuthorizationInterceptor.Extensions.MemoryCache' Or '$(MSBuildProjectName)' == 'AuthorizationInterceptor.Extensions.DistributedCache'">
     <IsCachingAbstractionsTargeted>true</IsCachingAbstractionsTargeted>
@@ -30,7 +30,7 @@
   </PropertyGroup>
   
   <ItemGroup>
-	<None Include="../../resources/icon.png" Pack="true" Visible="false" PackagePath="" />
+		<None Include="../../resources/icon.png" Pack="true" Visible="false" PackagePath="" />
   </ItemGroup>
   
   <ItemGroup Condition="'$(IsMainPackage)' == 'true'">
@@ -41,7 +41,7 @@
     <None Include="./README.md" Pack="true" Visible="false" PackagePath="" />
   </ItemGroup>
   
-  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0' And '$(IsCachingAbstractionsTargeted)' == 'true'">
+  <ItemGroup Condition="'$(IsCachingAbstractionsTargeted)' == 'true'">
     <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" />
   </ItemGroup>
   </Project>
