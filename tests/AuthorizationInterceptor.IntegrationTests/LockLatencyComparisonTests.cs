@@ -39,7 +39,7 @@ public class LockLatencyComparisonTests(RedisFixture redis, ITestOutputHelper ou
         Report(rows);
         MetricsReport.Write("lock-latency-single-instance.md", $"Lock latency — single instance, {requests} concurrent requests", rows);
 
-        Assert.All(none.Load.Responses.Concat(local.Load.Responses), response => response.IsSuccessStatusCode.Should().BeTrue());
+        none.Load.Responses.Concat(local.Load.Responses).Should().AllSatisfy(response => response.IsSuccessStatusCode.Should().BeTrue());
         (none.Logins > 1).Should().BeTrue();
         local.Logins.Should().Be(1);
     }
@@ -74,7 +74,7 @@ public class LockLatencyComparisonTests(RedisFixture redis, ITestOutputHelper ou
         localAndDistributed.Logins.Should().Be(1);
     }
 
-    private async Task<(int Logins, LoadResult Load)> RunSingleInstanceAsync(AuthenticationLockMode mode, int requests)
+    private static async Task<(int Logins, LoadResult Load)> RunSingleInstanceAsync(AuthenticationLockMode mode, int requests)
     {
         await using var target = await TargetApi.StartAsync(AuthDelay);
         await using var instance = ConsumerInstance.Create(target.CreateHandler, $"latency-{mode}", options =>

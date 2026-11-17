@@ -24,7 +24,7 @@ public class AuthenticationLockTests
 
         //Assert
         var exception = act.Should().ThrowExactly<InvalidOperationException>();
-        exception.Message.Should().Contain("IDistributedLockProvider");
+        exception.Which.Message.Should().Contain("IDistributedLockProvider");
     }
 
     [Theory]
@@ -104,7 +104,7 @@ public class AuthenticationLockTests
         Func<CancellationToken, Task<AuthorizationHeaders?>> authenticate = async _ =>
         {
             Interlocked.Increment(ref authCalls);
-            await Task.Delay(200);
+            await Task.Delay(200, _);
             return MockAuthorizationHeaders.CreateHeaders();
         };
 
@@ -114,8 +114,8 @@ public class AuthenticationLockTests
 
         //Assert
         authCalls.Should().Be(1);
-        Assert.All(results, result => result.Headers.Should().NotBeNull());
-        (result => result.Joined).Should().Contain(results);
+        results.Should().AllSatisfy(result => result.Headers.Should().NotBeNull());
+        results.Should().Contain(result => result.Joined);
     }
 
     [Fact]

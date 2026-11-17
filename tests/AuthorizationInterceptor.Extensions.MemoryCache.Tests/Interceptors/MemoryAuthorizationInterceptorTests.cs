@@ -57,7 +57,7 @@ public class MemoryAuthorizationInterceptorTests
         var act = () => _interceptor.UpdateHeadersAsync("test", null, null, CancellationToken.None);
 
         //Assert
-        act.Should().NotThrow();
+        act.Should().NotThrowAsync();
         _memory.Received(0).CreateEntry(Arg.Any<object>());
     }
 
@@ -68,7 +68,7 @@ public class MemoryAuthorizationInterceptorTests
         var act = () => _interceptor.UpdateHeadersAsync("test", null, new OAuthHeaders("accesstoken", "tokentype"), CancellationToken.None);
 
         //Assert
-        act.Should().NotThrow();
+        act.Should().NotThrowAsync();
         _memory.Received(1).CreateEntry(Arg.Any<object>());
     }
 
@@ -112,7 +112,7 @@ public class MemoryAuthorizationInterceptorTests
         var act = () => _interceptor.UpdateHeadersAsync("test_some-suffix", null, null, CancellationToken.None);
 
         //Assert
-        act.Should().NotThrow();
+        act.Should().NotThrowAsync();
         _memory.Received(0).CreateEntry(Arg.Any<object>());
     }
 
@@ -123,7 +123,7 @@ public class MemoryAuthorizationInterceptorTests
         var act = () => _interceptor.UpdateHeadersAsync("test_some-suffix", null, new OAuthHeaders("accesstoken", "tokentype"), CancellationToken.None);
 
         //Assert
-        act.Should().NotThrow();
+        act.Should().NotThrowAsync();
         _memory.Received(1).CreateEntry(Arg.Any<object>());
     }
 }

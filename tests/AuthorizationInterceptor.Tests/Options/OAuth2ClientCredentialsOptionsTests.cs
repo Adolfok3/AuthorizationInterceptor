@@ -53,10 +53,12 @@ public class OAuth2ClientCredentialsOptionsTests
         var options = ValidOptions();
         options.TokenEndpoint = endpoint is null ? null : new Uri(endpoint, UriKind.Relative);
 
-        var exception = options.Validate.Should().ThrowExactly<ArgumentException>();
+        var exception = FluentActions.Invoking(() => options.Validate())
+            .Should()
+            .ThrowExactly<ArgumentException>();
 
-        exception.ParamName.Should().Be(nameof(options.TokenEndpoint));
-        exception.Message.Should().Contain("absolute URI");
+        exception.Which.ParamName.Should().Be(nameof(options.TokenEndpoint));
+        exception.Which.Message.Should().Contain("absolute URI");
     }
 
     [Theory]
@@ -68,9 +70,11 @@ public class OAuth2ClientCredentialsOptionsTests
         var options = ValidOptions();
         options.ClientId = clientId!;
 
-        var exception = options.Validate.Should().ThrowExactly<ArgumentException>();
+        var exception = FluentActions.Invoking(() => options.Validate())
+            .Should()
+            .ThrowExactly<ArgumentException>();
 
-        exception.ParamName.Should().Be(nameof(options.ClientId));
+        exception.Which.ParamName.Should().Be(nameof(options.ClientId));
     }
 
     [Theory]
@@ -82,9 +86,11 @@ public class OAuth2ClientCredentialsOptionsTests
         var options = ValidOptions();
         options.ClientSecret = clientSecret!;
 
-        var exception = options.Validate.Should().ThrowExactly<ArgumentException>();
+        var exception = FluentActions.Invoking(() => options.Validate())
+            .Should()
+            .ThrowExactly<ArgumentException>();
 
-        exception.ParamName.Should().Be(nameof(options.ClientSecret));
+        exception.Which.ParamName.Should().Be(nameof(options.ClientSecret));
     }
 
     [Theory]
@@ -95,9 +101,11 @@ public class OAuth2ClientCredentialsOptionsTests
         var options = ValidOptions();
         options.ClientAuthenticationMethod = (OAuth2ClientAuthenticationMethod)authenticationMethod;
 
-        var exception = options.Validate.Should().ThrowExactly<ArgumentOutOfRangeException>();
+        var exception = FluentActions.Invoking(() => options.Validate())
+            .Should()
+            .ThrowExactly<ArgumentOutOfRangeException>();
 
-        exception.ParamName.Should().Be(nameof(options.ClientAuthenticationMethod));
+        exception.Which.ParamName.Should().Be(nameof(options.ClientAuthenticationMethod));
     }
 
     [Theory]
@@ -110,9 +118,11 @@ public class OAuth2ClientCredentialsOptionsTests
         options.Scopes.Add("api.read");
         options.Scopes.Add(scope!);
 
-        var exception = options.Validate.Should().ThrowExactly<ArgumentException>();
+        var exception = FluentActions.Invoking(() => options.Validate())
+            .Should()
+            .ThrowExactly<ArgumentException>();
 
-        exception.ParamName.Should().Be(nameof(options.Scopes));
+        exception.Which.ParamName.Should().Be(nameof(options.Scopes));
     }
 
     [Theory]
@@ -124,9 +134,11 @@ public class OAuth2ClientCredentialsOptionsTests
         options.AdditionalParameters.Add("audience", "https://api.example.com");
         options.AdditionalParameters.Add(key, "value");
 
-        var exception = options.Validate.Should().ThrowExactly<ArgumentException>();
+        var exception = FluentActions.Invoking(() => options.Validate())
+            .Should()
+            .ThrowExactly<ArgumentException>();
 
-        exception.ParamName.Should().Be(nameof(options.AdditionalParameters));
+        exception.Which.ParamName.Should().Be(nameof(options.AdditionalParameters));
     }
 
     [Theory]
@@ -139,10 +151,12 @@ public class OAuth2ClientCredentialsOptionsTests
         var options = ValidOptions();
         options.AdditionalParameters.Add(parameter, "value");
 
-        var exception = options.Validate.Should().ThrowExactly<ArgumentException>();
+        var exception = FluentActions.Invoking(() => options.Validate())
+            .Should()
+            .ThrowExactly<ArgumentException>();
 
-        exception.ParamName.Should().Be(nameof(options.AdditionalParameters));
-        exception.Message.Should().Contain(parameter);
+        exception.Which.ParamName.Should().Be(nameof(options.AdditionalParameters));
+        exception.Which.Message.Should().Contain(parameter);
     }
 
     [Theory]
@@ -153,10 +167,12 @@ public class OAuth2ClientCredentialsOptionsTests
         var options = ValidOptions();
         options.TokenEndpoint = new Uri(endpoint);
 
-        var exception = options.Validate.Should().ThrowExactly<ArgumentException>();
+        var exception = FluentActions.Invoking(() => options.Validate())
+            .Should()
+            .ThrowExactly<ArgumentException>();
 
-        exception.ParamName.Should().Be(nameof(options.TokenEndpoint));
-        exception.Message.Should().Contain("HTTPS");
+        exception.Which.ParamName.Should().Be(nameof(options.TokenEndpoint));
+        exception.Which.Message.Should().Contain("HTTPS");
     }
 
     [Theory]

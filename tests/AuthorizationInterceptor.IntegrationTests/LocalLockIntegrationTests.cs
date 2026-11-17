@@ -25,7 +25,7 @@ public class LocalLockIntegrationTests
         var responses = await Concurrency.FireConcurrentGetDataAsync(instance.Client, 50);
 
         //Assert
-        Assert.All(responses, response => response.IsSuccessStatusCode.Should().BeTrue());
+        responses.Should().AllSatisfy(response => response.IsSuccessStatusCode.Should().BeTrue());
         target.Counter.Count.Should().Be(1);
     }
 
@@ -46,7 +46,7 @@ public class LocalLockIntegrationTests
         var responses = await Concurrency.FireConcurrentGetDataAsync(instance.Client, 50);
 
         //Assert
-        Assert.All(responses, response => response.IsSuccessStatusCode.Should().BeTrue());
+        responses.Should().AllSatisfy(response => response.IsSuccessStatusCode.Should().BeTrue());
         (target.Counter.Count > 1).Should().BeTrue($"expected more than one login without a lock, got {target.Counter.Count}");
     }
 
@@ -74,7 +74,7 @@ public class LocalLockIntegrationTests
             var responses = perInstance.SelectMany(responses => responses).ToArray();
 
             //Assert
-            Assert.All(responses, response => response.IsSuccessStatusCode.Should().BeTrue());
+            responses.Should().AllSatisfy(response => response.IsSuccessStatusCode.Should().BeTrue());
             target.Counter.Count.Should().Be(instanceCount);
         }
         finally

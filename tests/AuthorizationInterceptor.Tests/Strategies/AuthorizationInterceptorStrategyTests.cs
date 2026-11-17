@@ -16,7 +16,7 @@ public class AuthorizationInterceptorStrategyTests
     private readonly IAuthorizationInterceptor _interceptor1;
     private readonly IAuthorizationInterceptor _interceptor2;
     private readonly IAuthorizationInterceptor _interceptor3;
-    private IAuthorizationInterceptorStrategy _stategy;
+    private AuthorizationInterceptorStrategy _stategy;
     private readonly ILogger _logger;
 
     public AuthorizationInterceptorStrategyTests()
@@ -271,7 +271,7 @@ public class AuthorizationInterceptorStrategyTests
 
         //Assert
         authentication.Calls.Should().Be(1);
-        Assert.All(results, headers => headers.Should().NotBeNull());
+        results.Should().AllSatisfy(headers => headers.Should().NotBeNull());
     }
 
     [Fact]
@@ -288,7 +288,7 @@ public class AuthorizationInterceptorStrategyTests
 
         //Assert
         authentication.Calls.Should().Be(4);
-        Assert.All(results, headers => headers.Should().NotBeNull());
+        results.Should().AllSatisfy(headers => headers.Should().NotBeNull());
     }
 
     [Fact]
@@ -308,8 +308,11 @@ public class AuthorizationInterceptorStrategyTests
 
         //Assert
         authentication.Calls.Should().Be(1);
-        Assert.All(results, headers => headers.Should().NotBeNull());
-        Assert.All(results, headers => headers.Should().NotBeSameAs(expiredHeaders));
+        results.Should().AllSatisfy(headers =>
+        {
+            headers.Should().NotBeNull();
+            headers.Should().NotBeSameAs(expiredHeaders);
+        });
     }
 
     [Fact]
@@ -333,7 +336,7 @@ public class AuthorizationInterceptorStrategyTests
         //Assert
         // Without the guard every caller would have settled for the single shared flight.
         (authentication.Calls > 1).Should().BeTrue($"expected the guard to force a re-authentication, got {authentication.Calls} call(s)");
-        Assert.All(results, headers => headers.Should().BeSameAs(staleResult));
+        results.Should().AllSatisfy(headers => headers.Should().BeSameAs(staleResult));
     }
 
     [Fact]
@@ -351,7 +354,7 @@ public class AuthorizationInterceptorStrategyTests
 
         //Assert
         authentication.Calls.Should().Be(1);
-        Assert.All(results, Assert.Null);
+        results.Should().AllSatisfy(headers => headers.Should().BeNull());
     }
 
     private static AuthorizationInterceptorStrategy CreateStrategy(params IAuthorizationInterceptor[] interceptors)

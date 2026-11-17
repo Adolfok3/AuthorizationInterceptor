@@ -198,3 +198,12 @@ dotnet_diagnostic.S3928.severity = none
 dotnet_diagnostic.S3267.severity = none
 dotnet_diagnostic.CA1863.severity = none
 dotnet_diagnostic.CA1305.severity = none
+dotnet_diagnostic.NS5000.severity = none
+
+[tests/**]
+dotnet_diagnostic.CS8620.severity = none
+dotnet_diagnostic.NS1000.severity = none
+dotnet_diagnostic.NS1001.severity = none
+dotnet_diagnostic.NS1004.severity = none
+dotnet_diagnostic.CA2012.severity = none
+dotnet_diagnostic.CA1001.severity = none

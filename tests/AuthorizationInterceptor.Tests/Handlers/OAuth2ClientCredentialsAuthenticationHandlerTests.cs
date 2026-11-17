@@ -124,7 +124,7 @@ public class OAuth2ClientCredentialsAuthenticationHandlerTests
         var action = async () => await handler.AuthenticateAsync(null, CancellationToken.None);
 
         var exception = await action.Should().ThrowExactlyAsync<HttpRequestException>();
-        Assert.Equal(statusCode, exception.StatusCode);
+        exception.Which.StatusCode.Should().Be(statusCode);
     }
 
     [Theory]
@@ -147,8 +147,7 @@ public class OAuth2ClientCredentialsAuthenticationHandlerTests
 
         var action = async () => await handler.AuthenticateAsync(null, CancellationToken.None);
 
-        var exception = await action.Should().ThrowExactlyAsync<InvalidOperationException>();
-        exception.Message.Should().Contain(property);
+        var exception = await action.Should().ThrowExactlyAsync<InvalidOperationException>().WithMessage(property);
     }
 
     [Theory]
@@ -219,7 +218,7 @@ public class OAuth2ClientCredentialsAuthenticationHandlerTests
         var action = async () => await handler.AuthenticateAsync(null, CancellationToken.None);
 
         var exception = await action.Should().ThrowExactlyAsync<HttpRequestException>();
-        exception.Should().BeSameAs(failure);
+        exception.And.Should().BeSameAs(failure);
     }
 
     [Fact]
@@ -241,8 +240,7 @@ public class OAuth2ClientCredentialsAuthenticationHandlerTests
             var transportCancellation = await requestStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
             cancellation.Cancel();
 
-            await (() => authentication.WaitAsync(TimeSpan.FromSeconds(5))).Should().ThrowAsync<OperationCanceledException>(
-);
+            await FluentActions.Awaiting(() => authentication.WaitAsync(TimeSpan.FromSeconds(5))).Should().ThrowAsync<OperationCanceledException>();
             transportCancellation.IsCancellationRequested.Should().BeTrue();
         }
         finally

@@ -98,9 +98,9 @@ public class OAuth2ClientCredentialsRegistrationTests
         using var secondOrdersResponse = await ordersClient.GetAsync("https://orders.example.com/orders");
         using var secondBillingResponse = await billingClient.GetAsync("https://billing.example.com/invoices");
 
-        receivedTokens.Should().Equal(new[] { "OrdersApi-token", "BillingApi-token", "OrdersApi-token", "BillingApi-token" });
-        Assert.All(tokenEndpoints, endpoint => endpoint.RequestCount.Should().Be(1));
-        cache.Headers.Keys.Order().Should().Equal(new[] { "BillingApi", "OrdersApi" });
+        receivedTokens.Should().Equal(["OrdersApi-token", "BillingApi-token", "OrdersApi-token", "BillingApi-token"]);
+        tokenEndpoints.Should().AllSatisfy(endpoint => endpoint.RequestCount.Should().Be(1));
+        cache.Headers.Keys.Order().Should().Equal(["BillingApi", "OrdersApi"]);
     }
 
     [Fact]
@@ -131,7 +131,7 @@ public class OAuth2ClientCredentialsRegistrationTests
         using var response = await client.GetAsync("https://orders.example.com/orders");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        receivedTokens.Should().Equal(new[] { "token-1", "token-2" });
+        receivedTokens.Should().Equal(["token-1", "token-2"]);
         tokenEndpoint.RequestCount.Should().Be(2);
         targetApi.RequestCount.Should().Be(2);
     }
@@ -175,9 +175,9 @@ public class OAuth2ClientCredentialsRegistrationTests
         httpContextAccessor.HttpContext.Request.Headers["X-Tenant"] = "tenant-b";
         using var otherTenantResponse = await client.GetAsync("https://orders.example.com/orders");
 
-        receivedTokens.Should().Equal(new[] { "token-1", "token-1", "token-2" });
+        receivedTokens.Should().Equal(["token-1", "token-1", "token-2"]);
         tokenEndpoint.RequestCount.Should().Be(2);
-        cache.Headers.Keys.Order().Should().Equal(new[] { "OrdersApi_tenant-a", "OrdersApi_tenant-b" });
+        cache.Headers.Keys.Order().Should().Equal(["OrdersApi_tenant-a", "OrdersApi_tenant-b"]);
     }
 
     private static HttpResponseMessage CreateTokenResponse(string accessToken) => new(HttpStatusCode.OK)

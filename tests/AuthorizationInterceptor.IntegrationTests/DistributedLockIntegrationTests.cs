@@ -66,7 +66,7 @@ public class DistributedLockIntegrationTests(RedisFixture redis)
         var responses = await Concurrency.FireConcurrentGetDataAsync(instance.Client, 50);
 
         //Assert
-        Assert.All(responses, response => response.IsSuccessStatusCode.Should().BeTrue());
+        responses.Should().AllSatisfy(response => response.IsSuccessStatusCode.Should().BeTrue());
         target.Counter.Count.Should().Be(1);
     }
 
@@ -81,7 +81,7 @@ public class DistributedLockIntegrationTests(RedisFixture redis)
             var perInstance = await Task.WhenAll(instances.Select(instance => Concurrency.FireConcurrentGetDataAsync(instance.Client, requestsPerInstance)));
             var responses = perInstance.SelectMany(responses => responses).ToArray();
 
-            Assert.All(responses, response => response.IsSuccessStatusCode.Should().BeTrue());
+            responses.Should().AllSatisfy(response => response.IsSuccessStatusCode.Should().BeTrue());
         }
         finally
         {
