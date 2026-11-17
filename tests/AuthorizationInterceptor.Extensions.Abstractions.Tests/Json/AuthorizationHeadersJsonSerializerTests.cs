@@ -177,4 +177,77 @@ public class AuthorizationHeadersJsonSerializerTests
         headers.ExpiresIn.Value.Should().Be(TimeSpan.FromMinutes(3));
         JsonSerializer.Serialize(headers.AuthenticatedAt).Should().Be(@"""2024-04-05T19:47:35.1564179+00:00""");
     }
+
+    [Fact]
+    public void SerialiazeWithOAuthPropertiesWithoutExpirationsShouldSerialize()
+    {
+        //Arrange
+        AuthorizationHeaders headers = new OAuthHeaders("AccessToken", "TokenType");
+
+        //Act
+        var json = AuthorizationHeadersJsonSerializer.Serialize(headers);
+
+        //Assert
+        json.Should().Contain(@"""OAuthHeaders"":{""AccessToken"":""AccessToken"",""TokenType"":""TokenType"",""ExpiresIn"":null,""RefreshToken"":null,""ExpiresInRefreshToken"":null}");
+    }
+
+    [Fact]
+    public void DeserialiazeWithUnexpectedTokenShouldThrow()
+    {
+        //Arrange
+        var json = @"""not-an-object""";
+
+        //Act
+        Action act = () => AuthorizationHeadersJsonSerializer.Deserialize(json);
+
+        //Assert
+        act.Should().Throw<JsonException>().WithMessage("*Expected EndObject token.*");
+    }
+
+    [Fact]
+    public void DeserialiazeWithOAuthPropertiesWithoutExpirationsShouldDeserialize()
+    {
+        //Arrange
+        var json = @"{
+                         ""Headers"":{""Authorization"":""Bearer AccessToken""},
+                         ""OAuthHeaders"":{
+                             ""AccessToken"":""AccessToken"",
+                             ""TokenType"":""Bearer"",
+                             ""ExpiresIn"":"""",
+                             ""RefreshToken"":""RefreshToken"",
+                             ""ExpiresInRefreshToken"":""500""
+                         }
+                      }";
+
+        //Act
+        var headers = AuthorizationHeadersJsonSerializer.Deserialize(json);
+
+        //Assert
+        headers.Should().NotBeNull();
+        headers.OAuthHeaders.Should().NotBeNull();
+        headers.OAuthHeaders!.ExpiresIn.Should().BeNull();
+        headers.OAuthHeaders.RefreshToken.Should().Be("RefreshToken");
+        headers.OAuthHeaders.ExpiresInRefreshToken.Should().Be(500);
+    }
+
+    [Fact]
+    public void DeserialiazeWithEmptyHeaderKeyOrValueShouldIgnoreThem()
+    {
+        //Arrange
+        var json = @"{
+                         ""Headers"":{
+                             """":""IgnoredKey"",
+                             ""IgnoredValue"":""""
+                         },
+                         ""ExpiresIn"":""00:03:00""
+                      }";
+
+        //Act
+        var headers = AuthorizationHeadersJsonSerializer.Deserialize(json);
+
+        //Assert
+        headers.Should().NotBeNull();
+        headers.Should().BeEmpty();
+        headers.ExpiresIn.Should().Be(TimeSpan.FromMinutes(3));
+    }
 }

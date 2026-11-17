@@ -72,11 +72,11 @@ internal class AuthorizationHeadersJsonConverter : JsonConverter<AuthorizationHe
         }
 
         writer.WriteStartObject("OAuthHeaders");
-        writer.WriteString("AccessToken", value.OAuthHeaders?.AccessToken);
-        writer.WriteString("TokenType", value.OAuthHeaders?.TokenType);
-        writer.WriteString("ExpiresIn", value.OAuthHeaders?.ExpiresIn?.ToString(CultureInfo.InvariantCulture));
-        writer.WriteString("RefreshToken", value.OAuthHeaders?.RefreshToken);
-        writer.WriteString("ExpiresInRefreshToken", value.OAuthHeaders?.ExpiresInRefreshToken?.ToString(CultureInfo.InvariantCulture));
+        writer.WriteString("AccessToken", value.OAuthHeaders.AccessToken);
+        writer.WriteString("TokenType", value.OAuthHeaders.TokenType);
+        writer.WriteString("ExpiresIn", value.OAuthHeaders.ExpiresIn?.ToString(CultureInfo.InvariantCulture));
+        writer.WriteString("RefreshToken", value.OAuthHeaders.RefreshToken);
+        writer.WriteString("ExpiresInRefreshToken", value.OAuthHeaders.ExpiresInRefreshToken?.ToString(CultureInfo.InvariantCulture));
         writer.WriteEndObject();
 
         writer.WriteEndObject();

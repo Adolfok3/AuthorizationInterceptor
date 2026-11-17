@@ -25,7 +25,7 @@ internal class AuthorizationInterceptorStrategy(ILoggerFactory loggerFactory, IA
 
         var lookup = await LookupHeadersAsync(key, cancellationToken);
         if (lookup.IsValid)
-            return await UpdateHeadersInInterceptorsAsync(key, lookup.Index, lookup.Headers, cancellationToken);
+            return await UpdateHeadersInInterceptorsAsync(key, lookup.Index, lookup.Headers!, cancellationToken);
 
         var flight = await RunWithLockAsync(key, lookup.Headers, authenticationHandler, cancellationToken);
 
@@ -53,8 +53,8 @@ internal class AuthorizationInterceptorStrategy(ILoggerFactory loggerFactory, IA
         return await AuthenticateAsync(key, expiredHeaders, authenticationHandler, cancellationToken);
     }
 
-    private static bool IsNewerThan(AuthorizationHeaders? cached, AuthorizationHeaders? expiredHeaders)
-        => cached != null && (expiredHeaders == null || cached.AuthenticatedAt > expiredHeaders.AuthenticatedAt);
+    private static bool IsNewerThan(AuthorizationHeaders cached, AuthorizationHeaders? expiredHeaders)
+        => expiredHeaders == null || cached.AuthenticatedAt > expiredHeaders.AuthenticatedAt;
 
     private ValueTask<AuthenticationLockResult> RunWithLockAsync(string key, AuthorizationHeaders? expiredHeaders, IAuthenticationHandler authenticationHandler, CancellationToken cancellationToken)
         => authenticationLock.RunAsync(
@@ -66,10 +66,10 @@ internal class AuthorizationInterceptorStrategy(ILoggerFactory loggerFactory, IA
     private async ValueTask<AuthorizationHeaders?> RevalidateFromConcurrentInstanceAsync(string key, AuthorizationHeaders? expiredHeaders, CancellationToken cancellationToken)
     {
         var lookup = await LookupHeadersAsync(key, cancellationToken);
-        if (lookup.IsValid && IsNewerThan(lookup.Headers, expiredHeaders))
+        if (lookup.IsValid && IsNewerThan(lookup.Headers!, expiredHeaders))
         {
             _logger.LogHeadersRefreshedByConcurrentInstance(key);
-            return await UpdateHeadersInInterceptorsAsync(key, lookup.Index, lookup.Headers, cancellationToken);
+            return await UpdateHeadersInInterceptorsAsync(key, lookup.Index, lookup.Headers!, cancellationToken);
         }
 
         return null;
@@ -130,12 +130,9 @@ internal class AuthorizationInterceptorStrategy(ILoggerFactory loggerFactory, IA
         return await UpdateHeadersInInterceptorsAsync(key, interceptors.Length, newHeaders, cancellationToken);
     }
 
-    private async ValueTask<AuthorizationHeaders?> UpdateHeadersInInterceptorsAsync(string key, int startIndex, AuthorizationHeaders? headers, CancellationToken cancellationToken)
+    private async ValueTask<AuthorizationHeaders?> UpdateHeadersInInterceptorsAsync(string key, int startIndex, AuthorizationHeaders headers, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-
-        if (headers == null)
-            return null;
 
         for (var index = startIndex - 1; index >= 0; index--)
         {
