@@ -54,7 +54,7 @@ public class AuthorizationHeaders : Dictionary<string, string>
     public static implicit operator AuthorizationHeaders(OAuthHeaders headers)
     {
         headers.Validate();
-        return [with(headers)];
+        return new AuthorizationHeaders(headers);
     }
 
     /// <summary>
