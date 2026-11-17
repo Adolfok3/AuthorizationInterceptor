@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="10.11.0" />
+		<PackageReference Include="Microsoft.Extensions.Caching.Hybrid" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\AuthorizationInterceptor.Extensions.Abstractions\AuthorizationInterceptor.Extensions.Abstractions.csproj" />

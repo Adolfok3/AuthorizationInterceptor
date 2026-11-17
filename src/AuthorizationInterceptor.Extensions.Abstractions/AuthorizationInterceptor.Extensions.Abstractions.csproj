@@ -1,9 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.AspNetCore.Http" Version="2.3.14" />
-		<PackageReference Include="Microsoft.Extensions.Http" Version="10.0.15" />
-		<PackageReference Include="DistributedLock.Core" Version="1.0.9" />
+		<PackageReference Include="Microsoft.AspNetCore.Http" />
+		<PackageReference Include="Microsoft.Extensions.Http" />
+		<PackageReference Include="DistributedLock.Core" />
 	</ItemGroup>
 
 	<ItemGroup>
