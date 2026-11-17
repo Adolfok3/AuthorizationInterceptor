@@ -13,6 +13,7 @@
     <File Path="README.md" />
   </Folder>
   <Folder Name="/src/">
+    <File Path="src/Directory.Build.props" />
     <Project Path="src/AuthorizationInterceptor.Extensions.Abstractions/AuthorizationInterceptor.Extensions.Abstractions.csproj" />
     <Project Path="src/AuthorizationInterceptor.Extensions.DistributedCache/AuthorizationInterceptor.Extensions.DistributedCache.csproj" />
     <Project Path="src/AuthorizationInterceptor.Extensions.HybridCache/AuthorizationInterceptor.Extensions.HybridCache.csproj" />
