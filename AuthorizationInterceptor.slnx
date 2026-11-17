@@ -1,0 +1,30 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path=".gitignore" />
+    <File Path="CHANGELOG.md" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/AuthorizationInterceptor.Extensions.Abstractions/AuthorizationInterceptor.Extensions.Abstractions.csproj" />
+    <Project Path="src/AuthorizationInterceptor.Extensions.DistributedCache/AuthorizationInterceptor.Extensions.DistributedCache.csproj" />
+    <Project Path="src/AuthorizationInterceptor.Extensions.HybridCache/AuthorizationInterceptor.Extensions.HybridCache.csproj" />
+    <Project Path="src/AuthorizationInterceptor.Extensions.MemoryCache/AuthorizationInterceptor.Extensions.MemoryCache.csproj" />
+    <Project Path="src/AuthorizationInterceptor/AuthorizationInterceptor.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AuthorizationInterceptor.Extensions.Abstractions.Tests/AuthorizationInterceptor.Extensions.Abstractions.Tests.csproj" />
+    <Project Path="tests/AuthorizationInterceptor.Extensions.DistributedCache.Tests/AuthorizationInterceptor.Extensions.DistributedCache.Tests.csproj" />
+    <Project Path="tests/AuthorizationInterceptor.Extensions.HybridCache.Tests/AuthorizationInterceptor.Extensions.HybridCache.Tests.csproj" />
+    <Project Path="tests/AuthorizationInterceptor.Extensions.MemoryCache.Tests/AuthorizationInterceptor.Extensions.MemoryCache.Tests.csproj" />
+    <Project Path="tests/AuthorizationInterceptor.IntegrationTests/AuthorizationInterceptor.IntegrationTests.csproj" />
+    <Project Path="tests/AuthorizationInterceptor.Tests/AuthorizationInterceptor.Tests.csproj" />
+  </Folder>
+</Solution>
