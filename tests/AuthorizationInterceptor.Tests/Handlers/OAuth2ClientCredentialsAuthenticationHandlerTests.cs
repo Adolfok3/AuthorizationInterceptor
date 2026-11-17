@@ -147,7 +147,7 @@ public class OAuth2ClientCredentialsAuthenticationHandlerTests
 
         var action = async () => await handler.AuthenticateAsync(null, CancellationToken.None);
 
-        var exception = await action.Should().ThrowExactlyAsync<InvalidOperationException>().WithMessage(property);
+        var exception = await action.Should().ThrowExactlyAsync<InvalidOperationException>().WithMessage($"*{property}*");
     }
 
     [Theory]

@@ -223,7 +223,7 @@ public class OAuth2ClientCredentialsRegistrationTests
             request.Method.Should().Be(HttpMethod.Post);
             request.RequestUri.Should().Be(new Uri("https://identity.example.com/token"));
             (request.Headers.Authorization?.Scheme).Should().Be("Basic");
-            request.Headers.GetValues("X-Token-Client").Should().ContainSingle().Should().Be("configured");
+            request.Headers.GetValues("X-Token-Client").Should().ContainSingle().Which.Should().Be("configured");
             (await request.Content!.ReadAsStringAsync(cancellationToken)).Should().Contain("grant_type=client_credentials");
 
             return new HttpResponseMessage(HttpStatusCode.OK)

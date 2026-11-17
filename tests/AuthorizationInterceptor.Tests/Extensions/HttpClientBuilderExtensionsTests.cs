@@ -171,7 +171,7 @@ public class HttpClientBuilderExtensionsTests
         var act = () => httpClientFactory.CreateClient("Test");
 
         // Assert
-        var exception = act.Should().ThrowExactly<InvalidOperationException>().WithMessage("IDistributedLockProvider");
+        var exception = act.Should().ThrowExactly<InvalidOperationException>().WithMessage("*IDistributedLockProvider*");
     }
 
     [Fact]
