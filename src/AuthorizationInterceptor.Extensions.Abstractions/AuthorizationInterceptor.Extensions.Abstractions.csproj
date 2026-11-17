@@ -4,6 +4,8 @@
 		<PackageReference Include="Microsoft.AspNetCore.Http" />
 		<PackageReference Include="Microsoft.Extensions.Http" />
 		<PackageReference Include="DistributedLock.Core" />
+		<!-- Vulnerability -->
+		<PackageReference Include="Microsoft.AspNetCore.WebUtilities" />
 	</ItemGroup>
 
 	<ItemGroup>
