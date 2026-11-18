@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [7.0.0] - 2026-11-17
+
+### Added
+
+- Added centralized dependency and build configuration: `Directory.Packages.props` (Central Package Management), a root `Directory.Build.props` with NuGet auditing, warnings-as-errors and shared compiler/analyzer settings, and a repository-wide `.editorconfig`.
+
+### Changed
+
+- Updated all product, sample and test dependencies to their current .NET 10 versions, including `Microsoft.Extensions.Http`, `Microsoft.Extensions.Caching.Abstractions` and `Microsoft.AspNetCore.*` 10.0.15, plus `Microsoft.Extensions.Caching.Hybrid` 10.11.0 and the latest test/analyzer tooling.
+- Cache keys in the MemoryCache, DistributedCache and HybridCache interceptors are now built from pre-parsed `CompositeFormat` templates instead of re-parsing the format string on every access; the generated keys are unchanged.
+- Migrated the solution from `AuthorizationInterceptor.sln` to `AuthorizationInterceptor.slnx`.
+- Refactored internal code and tests to comply with the new analyzer rules; no public API was changed.
+
+### Fixed
+
+- Token lifetimes, refresh-token lifetimes and `AuthenticatedAt` are now serialized and deserialized with `CultureInfo.InvariantCulture`, so cached `AuthorizationHeaders` round-trip correctly under any machine locale. This changes the cached JSON for locales with a decimal separator other than `.`; flush existing caches when upgrading from 6.x in those environments.
+- Added a direct `Microsoft.AspNetCore.WebUtilities` 10.0.15 reference to the abstractions package to address a known vulnerability.
+- Fixed test assertions that relied on older FluentAssertions behavior so the suite passes with FluentAssertions 8.
+
+### Breaking Changes
+
+- Removed .NET 8 and .NET 9 target framework support. All packages now target .NET 10 only; consumers must target .NET 10 or later.
+- Renamed the `UseCustomInterceptor<T>` parameter from `services` to `func` (matching `IAuthorizationInterceptorOptions`). Callers using the named argument `services:` must update it.
+
 ## [6.3.0] - 2026-08-20
 
 ### Added

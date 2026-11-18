@@ -18,7 +18,7 @@ public class HybridCacheAuthorizationInterceptorTests
     }
 
     [Fact]
-    public async Task GetHeadersAsync_ShouldGetFromCache()
+    public async Task GetHeadersAsyncShouldGetFromCache()
     {
         //Arrange
         var headers = new AuthorizationHeaders(TimeSpan.FromMinutes(3))
@@ -41,7 +41,7 @@ public class HybridCacheAuthorizationInterceptorTests
     }
 
     [Fact]
-    public async Task GetHeadersAsync_WithOAuth_ShouldGetFromCache()
+    public async Task GetHeadersAsyncWithOAuthShouldGetFromCache()
     {
         //Arrange
         AuthorizationHeaders? headers = new OAuthHeaders("token", "type", 123, "refresh", 12345);
@@ -63,7 +63,7 @@ public class HybridCacheAuthorizationInterceptorTests
     }
 
     [Fact]
-    public async Task GetHeadersAsync_ShouldGetFromCache_AndReturnNull()
+    public async Task GetHeadersAsyncShouldGetFromCacheAndReturnNull()
     {
         //Act
         var headers = await _sut.GetHeadersAsync("test", CancellationToken.None);
@@ -74,7 +74,7 @@ public class HybridCacheAuthorizationInterceptorTests
     }
 
     [Fact]
-    public async Task UpdateHeadersAsync_ShouldUpdateSuccessfully()
+    public async Task UpdateHeadersAsyncShouldUpdateSuccessfully()
     {
         //Arrange
         var headers = new AuthorizationHeaders(TimeSpan.FromMinutes(3))
@@ -91,7 +91,7 @@ public class HybridCacheAuthorizationInterceptorTests
     }
 
     [Fact]
-    public async Task UpdateHeadersAsync_WithNullHeaders_ShouldNotUpdate()
+    public async Task UpdateHeadersAsyncWithNullHeadersShouldNotUpdate()
     {
         //Act
         var act = async () => await _sut.UpdateHeadersAsync("test", null, null, CancellationToken.None);
@@ -102,7 +102,7 @@ public class HybridCacheAuthorizationInterceptorTests
     }
 
     [Fact]
-    public async Task GetHeadersAsync_WithCacheKeySuffix_ShouldGetFromCache()
+    public async Task GetHeadersAsyncWithCacheKeySuffixShouldGetFromCache()
     {
         //Arrange
         var headers = new AuthorizationHeaders(TimeSpan.FromMinutes(3))
@@ -125,7 +125,7 @@ public class HybridCacheAuthorizationInterceptorTests
     }
 
     [Fact]
-    public async Task GetHeadersAsync_WithCacheKeySuffix_WithOAuth_ShouldGetFromCache()
+    public async Task GetHeadersAsyncWithCacheKeySuffixWithOAuthShouldGetFromCache()
     {
         //Arrange
         AuthorizationHeaders? headers = new OAuthHeaders("token", "type", 123, "refresh", 12345);
@@ -147,7 +147,7 @@ public class HybridCacheAuthorizationInterceptorTests
     }
 
     [Fact]
-    public async Task GetHeadersAsync_WithCacheKeySuffix_ShouldGetFromCache_AndReturnNull()
+    public async Task GetHeadersAsyncWithCacheKeySuffixShouldGetFromCacheAndReturnNull()
     {
         //Act
         var headers = await _sut.GetHeadersAsync("test_some-suffix", CancellationToken.None);
@@ -158,7 +158,7 @@ public class HybridCacheAuthorizationInterceptorTests
     }
 
     [Fact]
-    public async Task UpdateHeadersAsync_WithCacheKeySuffix_ShouldUpdateSuccessfully()
+    public async Task UpdateHeadersAsyncWithCacheKeySuffixShouldUpdateSuccessfully()
     {
         //Arrange
         var headers = new AuthorizationHeaders(TimeSpan.FromMinutes(3))
@@ -175,7 +175,7 @@ public class HybridCacheAuthorizationInterceptorTests
     }
 
     [Fact]
-    public async Task UpdateHeadersAsync_WithNullHeaders_WithCacheKeySuffix_ShouldNotUpdate()
+    public async Task UpdateHeadersAsyncWithNullHeadersWithCacheKeySuffixShouldNotUpdate()
     {
         //Act
         var act = async () => await _sut.UpdateHeadersAsync("test_some-suffix", null, null, CancellationToken.None);

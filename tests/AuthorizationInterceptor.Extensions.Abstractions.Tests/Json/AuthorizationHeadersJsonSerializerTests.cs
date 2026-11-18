@@ -1,13 +1,14 @@
-﻿using AuthorizationInterceptor.Extensions.Abstractions.Headers;
+﻿using System.Text.Json;
+using AuthorizationInterceptor.Extensions.Abstractions.Headers;
 using AuthorizationInterceptor.Extensions.Abstractions.Json;
-using System.Text.Json;
+using FluentAssertions;
 
 namespace AuthorizationInterceptor.Extensions.Abstractions.Tests.Json;
 
 public class AuthorizationHeadersJsonSerializerTests
 {
     [Fact]
-    public void Serialiaze_WithEmptyProperties_ShouldSerialize()
+    public void SerialiazeWithEmptyPropertiesShouldSerialize()
     {
         //Arrange
         var headers = new AuthorizationHeaders();
@@ -16,15 +17,15 @@ public class AuthorizationHeadersJsonSerializerTests
         var json = AuthorizationHeadersJsonSerializer.Serialize(headers);
 
         //Assert
-        Assert.NotEmpty(json);
-        Assert.Contains(@"""Headers"":{}", json);
-        Assert.Contains(@"""ExpiresIn"":null", json);
-        Assert.Contains(@"""OAuthHeaders"":null", json);
-        Assert.Contains(@$"""AuthenticatedAt"":""{DateTimeOffset.UtcNow.Date:yyyy-MM-dd}", json);
+        json.Should().NotBeEmpty();
+        json.Should().Contain(@"""Headers"":{}");
+        json.Should().Contain(@"""ExpiresIn"":null");
+        json.Should().Contain(@"""OAuthHeaders"":null");
+        json.Should().Contain(@$"""AuthenticatedAt"":""{DateTimeOffset.UtcNow.Date:yyyy-MM-dd}");
     }
 
     [Fact]
-    public void Serialiaze_WithProperties_ShouldSerialize()
+    public void SerialiazeWithPropertiesShouldSerialize()
     {
         //Arrange
         var headers = new AuthorizationHeaders(TimeSpan.FromMinutes(3))
@@ -37,15 +38,15 @@ public class AuthorizationHeadersJsonSerializerTests
         var json = AuthorizationHeadersJsonSerializer.Serialize(headers);
 
         //Assert
-        Assert.NotEmpty(json);
-        Assert.Contains(@"""Headers"":{""Header1"":""Value1"",""Header2"":""Value2""}", json);
-        Assert.Contains(@"""ExpiresIn"":""00:03:00""", json);
-        Assert.Contains(@"""OAuthHeaders"":null", json);
-        Assert.Contains(@$"""AuthenticatedAt"":""{DateTimeOffset.UtcNow.Date:yyyy-MM-dd}", json);
+        json.Should().NotBeEmpty();
+        json.Should().Contain(@"""Headers"":{""Header1"":""Value1"",""Header2"":""Value2""}");
+        json.Should().Contain(@"""ExpiresIn"":""00:03:00""");
+        json.Should().Contain(@"""OAuthHeaders"":null");
+        json.Should().Contain(@$"""AuthenticatedAt"":""{DateTimeOffset.UtcNow.Date:yyyy-MM-dd}");
     }
 
     [Fact]
-    public void Serialiaze_WithOAuthProperties_ShouldSerialize()
+    public void SerialiazeWithOAuthPropertiesShouldSerialize()
     {
         //Arrange
         AuthorizationHeaders headers = new OAuthHeaders("AccessToken", "TokenType", 12345, "RefreshToken", 54321);
@@ -54,15 +55,15 @@ public class AuthorizationHeadersJsonSerializerTests
         var json = AuthorizationHeadersJsonSerializer.Serialize(headers);
 
         //Assert
-        Assert.NotEmpty(json);
-        Assert.Contains(@"""Headers"":{""Authorization"":""TokenType AccessToken""}", json);
-        Assert.Contains(@"""ExpiresIn"":""15:05:21""", json);
-        Assert.Contains(@"""OAuthHeaders"":{""AccessToken"":""AccessToken"",""TokenType"":""TokenType"",""ExpiresIn"":""12345"",""RefreshToken"":""RefreshToken"",""ExpiresInRefreshToken"":""54321""}", json);
-        Assert.Contains(@$"""AuthenticatedAt"":""{DateTimeOffset.UtcNow.Date:yyyy-MM-dd}", json);
+        json.Should().NotBeEmpty();
+        json.Should().Contain(@"""Headers"":{""Authorization"":""TokenType AccessToken""}");
+        json.Should().Contain(@"""ExpiresIn"":""15:05:21""");
+        json.Should().Contain(@"""OAuthHeaders"":{""AccessToken"":""AccessToken"",""TokenType"":""TokenType"",""ExpiresIn"":""12345"",""RefreshToken"":""RefreshToken"",""ExpiresInRefreshToken"":""54321""}");
+        json.Should().Contain(@$"""AuthenticatedAt"":""{DateTimeOffset.UtcNow.Date:yyyy-MM-dd}");
     }
 
     [Fact]
-    public void Deserialiaze_WithEmptyProperties_ShouldDeserialize()
+    public void DeserialiazeWithEmptyPropertiesShouldDeserialize()
     {
         //Arrange
         var json = @"{}";
@@ -71,15 +72,15 @@ public class AuthorizationHeadersJsonSerializerTests
         var headers = AuthorizationHeadersJsonSerializer.Deserialize(json);
 
         //Assert
-        Assert.NotNull(headers);
-        Assert.Empty(headers);
-        Assert.Null(headers.OAuthHeaders);
-        Assert.Null(headers.ExpiresIn);
-        Assert.Equal(DateTimeOffset.MinValue, headers.AuthenticatedAt);
+        headers.Should().NotBeNull();
+        headers.Should().BeEmpty();
+        headers.OAuthHeaders.Should().BeNull();
+        headers.ExpiresIn.Should().BeNull();
+        headers.AuthenticatedAt.Should().Be(DateTimeOffset.MinValue);
     }
 
     [Fact]
-    public void Deserialiaze_WithPropertiesEmpty_ShouldDeserialize()
+    public void DeserialiazeWithPropertiesEmptyShouldDeserialize()
     {
         //Arrange
         var json = @"{
@@ -92,15 +93,15 @@ public class AuthorizationHeadersJsonSerializerTests
         var headers = AuthorizationHeadersJsonSerializer.Deserialize(json);
 
         //Assert
-        Assert.NotNull(headers);
-        Assert.Empty(headers);
-        Assert.Null(headers.OAuthHeaders);
-        Assert.Null(headers.ExpiresIn);
-        Assert.Equal(DateTimeOffset.MinValue, headers.AuthenticatedAt);
+        headers.Should().NotBeNull();
+        headers.Should().BeEmpty();
+        headers.OAuthHeaders.Should().BeNull();
+        headers.ExpiresIn.Should().BeNull();
+        headers.AuthenticatedAt.Should().Be(DateTimeOffset.MinValue);
     }
 
     [Fact]
-    public void Deserialiaze_WithPropertiesEmptyOAuth_ShouldDeserialize()
+    public void DeserialiazeWithPropertiesEmptyOAuthShouldDeserialize()
     {
         //Arrange
         var json = @"{
@@ -113,15 +114,15 @@ public class AuthorizationHeadersJsonSerializerTests
         var headers = AuthorizationHeadersJsonSerializer.Deserialize(json);
 
         //Assert
-        Assert.NotNull(headers);
-        Assert.Empty(headers);
-        Assert.Null(headers.OAuthHeaders);
-        Assert.Null(headers.ExpiresIn);
-        Assert.Equal(DateTimeOffset.MinValue, headers.AuthenticatedAt);
+        headers.Should().NotBeNull();
+        headers.Should().BeEmpty();
+        headers.OAuthHeaders.Should().BeNull();
+        headers.ExpiresIn.Should().BeNull();
+        headers.AuthenticatedAt.Should().Be(DateTimeOffset.MinValue);
     }
 
     [Fact]
-    public void Deserialiaze_WithPropertiesAndEmptyOAuth_ShouldDeserialize()
+    public void DeserialiazeWithPropertiesAndEmptyOAuthShouldDeserialize()
     {
         //Arrange
         var json = @"{
@@ -136,17 +137,17 @@ public class AuthorizationHeadersJsonSerializerTests
         var headers = AuthorizationHeadersJsonSerializer.Deserialize(json);
 
         //Assert
-        Assert.NotNull(headers);
-        Assert.NotEmpty(headers);
-        Assert.Contains(headers, a => a is { Key: "Header1", Value: "Value1" });
-        Assert.Null(headers.OAuthHeaders);
-        Assert.NotNull(headers.ExpiresIn);
-        Assert.Equal(TimeSpan.FromMinutes(3), headers.ExpiresIn.Value);
-        Assert.Equal(DateTimeOffset.MinValue, headers.AuthenticatedAt);
+        headers.Should().NotBeNull();
+        headers.Should().NotBeEmpty();
+        headers.Should().Contain(a => a.Key == "Header1" && a.Value == "Value1");
+        headers.OAuthHeaders.Should().BeNull();
+        headers.ExpiresIn.Should().NotBeNull();
+        headers.ExpiresIn.Value.Should().Be(TimeSpan.FromMinutes(3));
+        headers.AuthenticatedAt.Should().Be(DateTimeOffset.MinValue);
     }
 
     [Fact]
-    public void Deserialiaze_WithProperties_ShouldDeserialize()
+    public void DeserialiazeWithPropertiesShouldDeserialize()
     {
         //Arrange
         var json = @"{
@@ -162,18 +163,91 @@ public class AuthorizationHeadersJsonSerializerTests
         var headers = AuthorizationHeadersJsonSerializer.Deserialize(json);
 
         //Assert
-        Assert.NotNull(headers);
-        Assert.NotEmpty(headers);
-        Assert.Contains(headers, a => a is { Key: "Header1", Value: "Value1" });
-        Assert.NotNull(headers.OAuthHeaders);
-        Assert.Equal("AccessToken", headers.OAuthHeaders.AccessToken);
-        Assert.Equal("Basic", headers.OAuthHeaders.TokenType);
-        Assert.NotNull(headers.OAuthHeaders.ExpiresIn);
-        Assert.Equal(120, headers.OAuthHeaders.ExpiresIn.Value);
-        Assert.Null(headers.OAuthHeaders.RefreshToken);
-        Assert.Null(headers.OAuthHeaders.ExpiresInRefreshToken);
-        Assert.NotNull(headers.ExpiresIn);
-        Assert.Equal(TimeSpan.FromMinutes(3), headers.ExpiresIn.Value);
-        Assert.Equal(@"""2024-04-05T19:47:35.1564179+00:00""", JsonSerializer.Serialize(headers.AuthenticatedAt));
+        headers.Should().NotBeNull();
+        headers.Should().NotBeEmpty();
+        headers.Should().Contain(a => a.Key == "Header1" && a.Value == "Value1");
+        headers.OAuthHeaders.Should().NotBeNull();
+        headers.OAuthHeaders.AccessToken.Should().Be("AccessToken");
+        headers.OAuthHeaders.TokenType.Should().Be("Basic");
+        headers.OAuthHeaders.ExpiresIn.Should().NotBeNull();
+        headers.OAuthHeaders.ExpiresIn.Value.Should().Be(120);
+        headers.OAuthHeaders.RefreshToken.Should().BeNull();
+        headers.OAuthHeaders.ExpiresInRefreshToken.Should().BeNull();
+        headers.ExpiresIn.Should().NotBeNull();
+        headers.ExpiresIn.Value.Should().Be(TimeSpan.FromMinutes(3));
+        JsonSerializer.Serialize(headers.AuthenticatedAt).Should().Be(@"""2024-04-05T19:47:35.1564179+00:00""");
+    }
+
+    [Fact]
+    public void SerialiazeWithOAuthPropertiesWithoutExpirationsShouldSerialize()
+    {
+        //Arrange
+        AuthorizationHeaders headers = new OAuthHeaders("AccessToken", "TokenType");
+
+        //Act
+        var json = AuthorizationHeadersJsonSerializer.Serialize(headers);
+
+        //Assert
+        json.Should().Contain(@"""OAuthHeaders"":{""AccessToken"":""AccessToken"",""TokenType"":""TokenType"",""ExpiresIn"":null,""RefreshToken"":null,""ExpiresInRefreshToken"":null}");
+    }
+
+    [Fact]
+    public void DeserialiazeWithUnexpectedTokenShouldThrow()
+    {
+        //Arrange
+        var json = @"""not-an-object""";
+
+        //Act
+        Action act = () => AuthorizationHeadersJsonSerializer.Deserialize(json);
+
+        //Assert
+        act.Should().Throw<JsonException>().WithMessage("*Expected EndObject token.*");
+    }
+
+    [Fact]
+    public void DeserialiazeWithOAuthPropertiesWithoutExpirationsShouldDeserialize()
+    {
+        //Arrange
+        var json = @"{
+                         ""Headers"":{""Authorization"":""Bearer AccessToken""},
+                         ""OAuthHeaders"":{
+                             ""AccessToken"":""AccessToken"",
+                             ""TokenType"":""Bearer"",
+                             ""ExpiresIn"":"""",
+                             ""RefreshToken"":""RefreshToken"",
+                             ""ExpiresInRefreshToken"":""500""
+                         }
+                      }";
+
+        //Act
+        var headers = AuthorizationHeadersJsonSerializer.Deserialize(json);
+
+        //Assert
+        headers.Should().NotBeNull();
+        headers.OAuthHeaders.Should().NotBeNull();
+        headers.OAuthHeaders!.ExpiresIn.Should().BeNull();
+        headers.OAuthHeaders.RefreshToken.Should().Be("RefreshToken");
+        headers.OAuthHeaders.ExpiresInRefreshToken.Should().Be(500);
+    }
+
+    [Fact]
+    public void DeserialiazeWithEmptyHeaderKeyOrValueShouldIgnoreThem()
+    {
+        //Arrange
+        var json = @"{
+                         ""Headers"":{
+                             """":""IgnoredKey"",
+                             ""IgnoredValue"":""""
+                         },
+                         ""ExpiresIn"":""00:03:00""
+                      }";
+
+        //Act
+        var headers = AuthorizationHeadersJsonSerializer.Deserialize(json);
+
+        //Assert
+        headers.Should().NotBeNull();
+        headers.Should().BeEmpty();
+        headers.ExpiresIn.Should().Be(TimeSpan.FromMinutes(3));
     }
 }

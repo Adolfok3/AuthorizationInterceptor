@@ -29,4 +29,4 @@ services.AddHttpClient("TargetApi")
 		})
 ```
 
-> Note: Hybrid cache is an abstraction that needs to be pre-configured using some libraries already available for .Net. Please check the official documentation of [HybridCache library in ASP.NET Core](https://learn.microsoft.com/en-us/aspnet/core/performance/caching/hybrid?view=aspnetcore-9.0)
+> Note: Hybrid cache is an abstraction that needs to be pre-configured using some libraries already available for .Net. Please check the official documentation of [HybridCache library in ASP.NET Core](https://learn.microsoft.com/en-us/aspnet/core/performance/caching/hybrid?view=aspnetcore-10.0)

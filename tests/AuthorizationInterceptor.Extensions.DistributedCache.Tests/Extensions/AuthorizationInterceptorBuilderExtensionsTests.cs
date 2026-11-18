@@ -8,7 +8,7 @@ namespace AuthorizationInterceptor.Extensions.DistributedCache.Tests.Extensions;
 public class AuthorizationInterceptorBuilderExtensionsTests
 {
     [Fact]
-    public void UseDistributedCache_ShouldRegisterDistributedCacheDependencies_AndAddInterceptor()
+    public void UseDistributedCacheShouldRegisterDistributedCacheDependenciesAndAddInterceptor()
     {
         // Arrange
         var options = Substitute.For<IAuthorizationInterceptorOptions>();

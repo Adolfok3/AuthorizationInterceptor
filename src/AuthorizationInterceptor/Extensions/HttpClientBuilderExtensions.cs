@@ -62,8 +62,7 @@ public static class HttpClientBuilderExtensions
             CreateStrategy(provider, optionsInstance),
             provider.GetRequiredService<ILoggerFactory>(),
             provider.GetRequiredService<IHttpContextAccessor>(),
-            optionsInstance.CacheKeyBuilder
-        ));
+            optionsInstance.CacheKeyBuilder));
 
         return builder;
     }
@@ -87,8 +86,7 @@ public static class HttpClientBuilderExtensions
             CreateStrategy(provider, optionsInstance),
             provider.GetRequiredService<ILoggerFactory>(),
             provider.GetRequiredService<IHttpContextAccessor>(),
-            optionsInstance.CacheKeyBuilder
-        ));
+            optionsInstance.CacheKeyBuilder));
 
         return builder;
     }
@@ -107,7 +105,8 @@ public static class HttpClientBuilderExtensions
         return optionsInstance;
     }
 
-    private static T CreateAuthenticationHandler<T>(IServiceProvider provider) where T : class, IAuthenticationHandler
+    private static T CreateAuthenticationHandler<T>(IServiceProvider provider)
+        where T : class, IAuthenticationHandler
         => ActivatorUtilities.CreateInstance<T>(provider);
 
     private static AuthorizationInterceptorStrategy CreateStrategy(IServiceProvider provider, AuthorizationInterceptorOptions options)
@@ -116,7 +115,7 @@ public static class HttpClientBuilderExtensions
         var interceptors = new IAuthorizationInterceptor[interceptorsToBuild.Count];
 
         for (int index = 0; index < interceptorsToBuild.Count; index++)
-            interceptors[index] = (IAuthorizationInterceptor)ActivatorUtilities.CreateInstance(provider, interceptorsToBuild[index].Item1);
+            interceptors[index] = (IAuthorizationInterceptor)ActivatorUtilities.CreateInstance(provider, interceptorsToBuild[index].Type);
 
         var authenticationLock = new AuthenticationLock(
             options.LockMode,
@@ -130,4 +129,3 @@ public static class HttpClientBuilderExtensions
             authenticationLock);
     }
 }
-

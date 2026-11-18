@@ -5,6 +5,7 @@ using AuthorizationInterceptor.Extensions.Abstractions.Options;
 using AuthorizationInterceptor.Strategies;
 using AuthorizationInterceptor.Tests.Utils;
 using AuthorizationInterceptor.Utils;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using NSubstitute.ExceptionExtensions;
 
@@ -15,7 +16,7 @@ public class AuthorizationInterceptorStrategyTests
     private readonly IAuthorizationInterceptor _interceptor1;
     private readonly IAuthorizationInterceptor _interceptor2;
     private readonly IAuthorizationInterceptor _interceptor3;
-    private IAuthorizationInterceptorStrategy _stategy;
+    private AuthorizationInterceptorStrategy _stategy;
     private readonly ILogger _logger;
 
     public AuthorizationInterceptorStrategyTests()
@@ -31,7 +32,7 @@ public class AuthorizationInterceptorStrategyTests
     }
 
     [Fact]
-    public async Task GetHeadersAsync_WithCancellationToken_ShouldThrowsOperationCanceledException()
+    public async Task GetHeadersAsyncWithCancellationTokenShouldThrowsOperationCanceledException()
     {
         //Arrange
         var authentication = Substitute.For<IAuthenticationHandler>();
@@ -43,11 +44,11 @@ public class AuthorizationInterceptorStrategyTests
         Func<Task> act = async () => await _stategy.GetHeadersAsync("test", authentication, cancellationToken.Token);
 
         //Assert
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(act);
+        await act.Should().ThrowAsync<OperationCanceledException>();
     }
 
     [Fact]
-    public async Task GetHeadersAsync_ShouldGetOnlyInAuthenticationHandler()
+    public async Task GetHeadersAsyncShouldGetOnlyInAuthenticationHandler()
     {
         //Arrange
         var authentication = Substitute.For<IAuthenticationHandler>();
@@ -57,12 +58,12 @@ public class AuthorizationInterceptorStrategyTests
         var headers = await _stategy.GetHeadersAsync("test", authentication, CancellationToken.None);
 
         //Assert
-        Assert.Null(headers);
+        headers.Should().BeNull();
         await authentication.Received(1).AuthenticateAsync(null, Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task GetHeadersAsync_WithNoInterceptors_ShouldGetFromAuthenticationHandler()
+    public async Task GetHeadersAsyncWithNoInterceptorsShouldGetFromAuthenticationHandler()
     {
         //Arrange
         var authentication = Substitute.For<IAuthenticationHandler>();
@@ -77,12 +78,12 @@ public class AuthorizationInterceptorStrategyTests
         var headers = await strategy.GetHeadersAsync("test_user-1", authentication, CancellationToken.None);
 
         //Assert
-        Assert.Same(expectedHeaders, headers);
+        headers.Should().BeSameAs(expectedHeaders);
         await authentication.Received(1).AuthenticateAsync(null, Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task GetHeadersAsync_WithNoExpires_ShouldGetFromFirstInterceptor()
+    public async Task GetHeadersAsyncWithNoExpiresShouldGetFromFirstInterceptor()
     {
         //Arrange
         var validHeaders = new AuthorizationHeaders(null);
@@ -95,7 +96,7 @@ public class AuthorizationInterceptorStrategyTests
         var headers = await _stategy.GetHeadersAsync("test", authentication, CancellationToken.None);
 
         //Assert
-        Assert.NotNull(headers);
+        headers.Should().NotBeNull();
         await _interceptor1.Received(1).GetHeadersAsync("test", Arg.Any<CancellationToken>());
         await _interceptor2.Received(0).GetHeadersAsync("test", Arg.Any<CancellationToken>());
         await _interceptor3.Received(0).GetHeadersAsync("test", Arg.Any<CancellationToken>());
@@ -106,7 +107,7 @@ public class AuthorizationInterceptorStrategyTests
     }
 
     [Fact]
-    public async Task GetHeadersAsync_WithExpires_AndValidHeaders_ShouldGetFromFirstInterceptor()
+    public async Task GetHeadersAsyncWithExpiresAndValidHeadersShouldGetFromFirstInterceptor()
     {
         //Arrange
         var validHeaders = new AuthorizationHeaders(TimeSpan.FromSeconds(10));
@@ -119,7 +120,7 @@ public class AuthorizationInterceptorStrategyTests
         var headers = await _stategy.GetHeadersAsync("test", authentication, CancellationToken.None);
 
         //Assert
-        Assert.NotNull(headers);
+        headers.Should().NotBeNull();
         await _interceptor1.Received(1).GetHeadersAsync("test", Arg.Any<CancellationToken>());
         await _interceptor2.Received(0).GetHeadersAsync("test", Arg.Any<CancellationToken>());
         await _interceptor3.Received(0).GetHeadersAsync("test", Arg.Any<CancellationToken>());
@@ -130,7 +131,7 @@ public class AuthorizationInterceptorStrategyTests
     }
 
     [Fact]
-    public async Task GetHeadersAsync_WithExpires_AndInvalidHeaders_ShouldGetFromFirstInterceptor_AndUpdateInAll()
+    public async Task GetHeadersAsyncWithExpiresAndInvalidHeadersShouldGetFromFirstInterceptorAndUpdateInAll()
     {
         //Arrange
         AuthorizationHeaders invalidHeaders = new OAuthHeaders("test", "test", 1, "test", 500);
@@ -145,7 +146,7 @@ public class AuthorizationInterceptorStrategyTests
         var headers = await _stategy.GetHeadersAsync("test", authentication, CancellationToken.None);
 
         //Assert
-        Assert.NotNull(headers);
+        headers.Should().NotBeNull();
         await _interceptor1.Received(1).GetHeadersAsync("test", Arg.Any<CancellationToken>());
         await _interceptor2.Received(0).GetHeadersAsync("test", Arg.Any<CancellationToken>());
         await _interceptor3.Received(0).GetHeadersAsync("test", Arg.Any<CancellationToken>());
@@ -156,7 +157,7 @@ public class AuthorizationInterceptorStrategyTests
     }
 
     [Fact]
-    public async Task GetHeadersAsync_ShouldGetFromSecondInterceptor()
+    public async Task GetHeadersAsyncShouldGetFromSecondInterceptor()
     {
         //Arrange
         var authentication = Substitute.For<IAuthenticationHandler>();
@@ -168,7 +169,7 @@ public class AuthorizationInterceptorStrategyTests
         var headers = await _stategy.GetHeadersAsync("test", authentication, CancellationToken.None);
 
         //Assert
-        Assert.NotNull(headers);
+        headers.Should().NotBeNull();
         await _interceptor1.Received(1).GetHeadersAsync("test", Arg.Any<CancellationToken>());
         await _interceptor2.Received(1).GetHeadersAsync("test", Arg.Any<CancellationToken>());
         await _interceptor3.Received(0).GetHeadersAsync("test", Arg.Any<CancellationToken>());
@@ -179,7 +180,7 @@ public class AuthorizationInterceptorStrategyTests
     }
 
     [Fact]
-    public async Task GetHeadersAsync_ShouldGetFromThirdInterceptor_WithSecondError()
+    public async Task GetHeadersAsyncShouldGetFromThirdInterceptorWithSecondError()
     {
         //Arrange
         var authentication = Substitute.For<IAuthenticationHandler>();
@@ -191,7 +192,7 @@ public class AuthorizationInterceptorStrategyTests
         var headers = await _stategy.GetHeadersAsync("test", authentication, CancellationToken.None);
 
         //Assert
-        Assert.NotNull(headers);
+        headers.Should().NotBeNull();
         await _interceptor1.Received(1).GetHeadersAsync("test", Arg.Any<CancellationToken>());
         await _interceptor2.Received(1).GetHeadersAsync("test", Arg.Any<CancellationToken>());
         await _interceptor3.Received(1).GetHeadersAsync("test", Arg.Any<CancellationToken>());
@@ -202,7 +203,7 @@ public class AuthorizationInterceptorStrategyTests
     }
 
     [Fact]
-    public async Task UpdateHeadersAsync_WithCancellationToken_ShouldThrowsOperationCanceledException()
+    public async Task UpdateHeadersAsyncWithCancellationTokenShouldThrowsOperationCanceledException()
     {
         //Arrange
         var authentication = Substitute.For<IAuthenticationHandler>();
@@ -216,11 +217,11 @@ public class AuthorizationInterceptorStrategyTests
         Func<Task> act = async () => await _stategy.UpdateHeadersAsync("test", null, authentication, cancellationToken.Token);
 
         //Assert
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(act);
+        await act.Should().ThrowAsync<OperationCanceledException>();
     }
 
     [Fact]
-    public async Task UpdateHeadersAsync_ShouldNotUpdateInSecondInterceptors()
+    public async Task UpdateHeadersAsyncShouldNotUpdateInSecondInterceptors()
     {
         //Arrange
         var authentication = Substitute.For<IAuthenticationHandler>();
@@ -231,7 +232,7 @@ public class AuthorizationInterceptorStrategyTests
         var act = async () => await _stategy.UpdateHeadersAsync("test", null, authentication, CancellationToken.None);
 
         //Assert
-        Assert.Null(await Record.ExceptionAsync(act));
+        (await Record.ExceptionAsync(act)).Should().BeNull();
         await authentication.Received(1).AuthenticateAsync(null, Arg.Any<CancellationToken>());
         await _interceptor1.Received(1).UpdateHeadersAsync("test", Arg.Any<AuthorizationHeaders?>(), Arg.Any<AuthorizationHeaders?>(), Arg.Any<CancellationToken>());
         await _interceptor2.Received(1).UpdateHeadersAsync("test", Arg.Any<AuthorizationHeaders?>(), Arg.Any<AuthorizationHeaders?>(), Arg.Any<CancellationToken>());
@@ -239,7 +240,7 @@ public class AuthorizationInterceptorStrategyTests
     }
 
     [Fact]
-    public async Task UpdateHeadersAsync_ShouldUpdateInInterceptors()
+    public async Task UpdateHeadersAsyncShouldUpdateInInterceptors()
     {
         //Arrange
         var authentication = Substitute.For<IAuthenticationHandler>();
@@ -249,7 +250,7 @@ public class AuthorizationInterceptorStrategyTests
         var act = async () => await _stategy.UpdateHeadersAsync("test", null, authentication, CancellationToken.None);
 
         //Assert
-        Assert.Null(await Record.ExceptionAsync(act));
+        (await Record.ExceptionAsync(act)).Should().BeNull();
         await authentication.Received(1).AuthenticateAsync(null, Arg.Any<CancellationToken>());
         await _interceptor1.Received(0).UpdateHeadersAsync("test", Arg.Any<AuthorizationHeaders?>(), Arg.Any<AuthorizationHeaders?>(), Arg.Any<CancellationToken>());
         await _interceptor2.Received(0).UpdateHeadersAsync("test", Arg.Any<AuthorizationHeaders?>(), Arg.Any<AuthorizationHeaders?>(), Arg.Any<CancellationToken>());
@@ -257,7 +258,7 @@ public class AuthorizationInterceptorStrategyTests
     }
 
     [Fact]
-    public async Task GetHeadersAsync_WithConcurrentCallers_ShouldAuthenticateOnlyOnce()
+    public async Task GetHeadersAsyncWithConcurrentCallersShouldAuthenticateOnlyOnce()
     {
         //Arrange
         var cache = new MockCachingAuthorizationInterceptor();
@@ -269,12 +270,12 @@ public class AuthorizationInterceptorStrategyTests
             .Select(_ => Task.Run(async () => await strategy.GetHeadersAsync("test", authentication, CancellationToken.None))));
 
         //Assert
-        Assert.Equal(1, authentication.Calls);
-        Assert.All(results, headers => Assert.NotNull(headers));
+        authentication.Calls.Should().Be(1);
+        results.Should().AllSatisfy(headers => headers.Should().NotBeNull());
     }
 
     [Fact]
-    public async Task GetHeadersAsync_WithConcurrentCallers_AndDifferentCacheKeySuffixes_ShouldAuthenticateOncePerSuffix()
+    public async Task GetHeadersAsyncWithConcurrentCallersAndDifferentCacheKeySuffixesShouldAuthenticateOncePerSuffix()
     {
         //Arrange
         var cache = new MockCachingAuthorizationInterceptor();
@@ -286,12 +287,12 @@ public class AuthorizationInterceptorStrategyTests
             .Select(index => Task.Run(async () => await strategy.GetHeadersAsync($"test_tenant-{index % 4}", authentication, CancellationToken.None))));
 
         //Assert
-        Assert.Equal(4, authentication.Calls);
-        Assert.All(results, headers => Assert.NotNull(headers));
+        authentication.Calls.Should().Be(4);
+        results.Should().AllSatisfy(headers => headers.Should().NotBeNull());
     }
 
     [Fact]
-    public async Task UpdateHeadersAsync_WithConcurrentCallers_ShouldAuthenticateOnlyOnce()
+    public async Task UpdateHeadersAsyncWithConcurrentCallersShouldAuthenticateOnlyOnce()
     {
         //Arrange
         var expiredHeaders = MockAuthorizationHeaders.CreateHeaders();
@@ -306,13 +307,16 @@ public class AuthorizationInterceptorStrategyTests
             .Select(_ => Task.Run(async () => await strategy.UpdateHeadersAsync("test", expiredHeaders, authentication, CancellationToken.None))));
 
         //Assert
-        Assert.Equal(1, authentication.Calls);
-        Assert.All(results, headers => Assert.NotNull(headers));
-        Assert.All(results, headers => Assert.NotSame(expiredHeaders, headers));
+        authentication.Calls.Should().Be(1);
+        results.Should().AllSatisfy(headers =>
+        {
+            headers.Should().NotBeNull();
+            headers.Should().NotBeSameAs(expiredHeaders);
+        });
     }
 
     [Fact]
-    public async Task UpdateHeadersAsync_WhenJoinedFlightIsNotNewerThanRejectedHeaders_ShouldReauthenticate()
+    public async Task UpdateHeadersAsyncWhenJoinedFlightIsNotNewerThanRejectedHeadersShouldReauthenticate()
     {
         //Arrange
         // The shared authentication resolves to headers that predate the ones the target API rejected,
@@ -331,12 +335,12 @@ public class AuthorizationInterceptorStrategyTests
 
         //Assert
         // Without the guard every caller would have settled for the single shared flight.
-        Assert.True(authentication.Calls > 1, $"expected the guard to force a re-authentication, got {authentication.Calls} call(s)");
-        Assert.All(results, headers => Assert.Same(staleResult, headers));
+        (authentication.Calls > 1).Should().BeTrue($"expected the guard to force a re-authentication, got {authentication.Calls} call(s)");
+        results.Should().AllSatisfy(headers => headers.Should().BeSameAs(staleResult));
     }
 
     [Fact]
-    public async Task UpdateHeadersAsync_WithConcurrentCallers_AndNoHeadersGenerated_ShouldAuthenticateOnlyOnce()
+    public async Task UpdateHeadersAsyncWithConcurrentCallersAndNoHeadersGeneratedShouldAuthenticateOnlyOnce()
     {
         //Arrange
         // A handler returning null is a terminal answer, not a stale generation, so the callers that
@@ -349,8 +353,8 @@ public class AuthorizationInterceptorStrategyTests
             .Select(_ => Task.Run(async () => await strategy.UpdateHeadersAsync("test", MockAuthorizationHeaders.CreateHeaders(), authentication, CancellationToken.None))));
 
         //Assert
-        Assert.Equal(1, authentication.Calls);
-        Assert.All(results, Assert.Null);
+        authentication.Calls.Should().Be(1);
+        results.Should().AllSatisfy(headers => headers.Should().BeNull());
     }
 
     private static AuthorizationInterceptorStrategy CreateStrategy(params IAuthorizationInterceptor[] interceptors)

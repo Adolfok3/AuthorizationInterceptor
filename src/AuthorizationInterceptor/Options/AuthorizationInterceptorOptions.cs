@@ -1,8 +1,8 @@
-﻿using AuthorizationInterceptor.Extensions.Abstractions.Interceptors;
+﻿using System.Net;
+using AuthorizationInterceptor.Extensions.Abstractions.Interceptors;
 using AuthorizationInterceptor.Extensions.Abstractions.Options;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using System.Net;
 
 namespace AuthorizationInterceptor.Options;
 
@@ -11,7 +11,7 @@ namespace AuthorizationInterceptor.Options;
 /// </summary>
 public class AuthorizationInterceptorOptions : IAuthorizationInterceptorOptions
 {
-    internal readonly List<(Type, Func<IServiceCollection, IServiceCollection>?)> Interceptors = [];
+    private readonly List<(Type, Func<IServiceCollection, IServiceCollection>?)> _interceptors = [];
 
     /// <summary>
     /// Defines a predicate to know when the request was unauthenticated. If this happens, a new authorization header will be generated. Default is response with <see cref="HttpStatusCode.Unauthorized"/>.
@@ -42,12 +42,14 @@ public class AuthorizationInterceptorOptions : IAuthorizationInterceptorOptions
     /// </summary>
     public TimeSpan? DistributedLockTimeout { get; set; }
 
+    internal IReadOnlyList<(Type Type, Func<IServiceCollection, IServiceCollection>? Services)> Interceptors => _interceptors.AsReadOnly();
+
     /// <summary>
     /// Adds a custom interceptor to the interceptor sequence. Note that the interceptor addition sequence interferes with the headers query sequence.
     /// </summary>
     /// <typeparam name="T">Implementation class of type <see cref="IAuthorizationInterceptor"/></typeparam>
-    /// <param name="services">Access to <see cref="IServiceCollection"/> if necessary to inject some dependencies</param>
-    public void UseCustomInterceptor<T>(Func<IServiceCollection, IServiceCollection>? services = null) where T : IAuthorizationInterceptor
-        => Interceptors.Add((typeof(T), services));
+    /// <param name="func">Access to <see cref="IServiceCollection"/> if necessary to inject some dependencies</param>
+    public void UseCustomInterceptor<T>(Func<IServiceCollection, IServiceCollection>? func = null)
+        where T : IAuthorizationInterceptor
+        => _interceptors.Add((typeof(T), func));
 }
-

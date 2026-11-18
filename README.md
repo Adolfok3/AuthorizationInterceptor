@@ -8,7 +8,7 @@ A lightweight .NET library that keeps your `HttpClient` authenticated for you. W
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 [![Codecov](https://codecov.io/github/Adolfok3/AuthorizationInterceptor/graph/badge.svg?token=PHBV20RCQK)](https://codecov.io/github/Adolfok3/AuthorizationInterceptor)
 [![NuGet Version](https://img.shields.io/nuget/vpre/AuthorizationInterceptor)](https://www.nuget.org/packages/AuthorizationInterceptor)
-[![.NET Support](https://img.shields.io/badge/.NET-8%2C9%2C10-blue)](https://dotnet.microsoft.com/download)
+[![.NET Support](https://img.shields.io/badge/.NET-10-blue)](https://dotnet.microsoft.com/download)
 
 ## Quick Start
 
@@ -67,7 +67,7 @@ builder.Services.AddHttpClient("TargetApi")
 - **Caching** — in-memory, distributed (Redis/NCache), or hybrid, to avoid redundant logins.
 - **Deduplicated authentication** — concurrent requests share a single authentication call.
 - **Local & distributed locking** — coalesce authentication within an instance, and optionally across instances.
-- **.NET 8, 9, and 10.**
+- **.NET 10.**
 
 ## OAuth & refresh tokens
 

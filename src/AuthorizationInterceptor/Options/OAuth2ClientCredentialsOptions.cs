@@ -10,7 +10,7 @@ public sealed class OAuth2ClientCredentialsOptions
         "grant_type",
         "client_id",
         "client_secret",
-        "scope"
+        "scope",
     };
 
     /// <summary>

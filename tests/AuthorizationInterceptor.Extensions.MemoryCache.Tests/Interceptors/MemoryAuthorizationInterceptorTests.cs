@@ -18,7 +18,7 @@ public class MemoryAuthorizationInterceptorTests
     }
 
     [Fact]
-    public async Task GetHeadersAsync_ShouldReturnNull()
+    public async Task GetHeadersAsyncShouldReturnNull()
     {
         //Act
         var headers = await _interceptor.GetHeadersAsync("test", CancellationToken.None);
@@ -29,7 +29,7 @@ public class MemoryAuthorizationInterceptorTests
     }
 
     [Fact]
-    public async Task GetHeadersAsync_ShouldReturnHeaders()
+    public async Task GetHeadersAsyncShouldReturnHeaders()
     {
         //Arrange
         AuthorizationHeaders obj = new OAuthHeaders("accesstoken", "tokentype");
@@ -51,29 +51,29 @@ public class MemoryAuthorizationInterceptorTests
     }
 
     [Fact]
-    public void UpdateHeadersAsync_WithNullHeaders_ShouldNotUpdateInMemoryCache()
+    public void UpdateHeadersAsyncWithNullHeadersShouldNotUpdateInMemoryCache()
     {
         //Act
         var act = () => _interceptor.UpdateHeadersAsync("test", null, null, CancellationToken.None);
 
         //Assert
-        act.Should().NotThrow();
+        act.Should().NotThrowAsync();
         _memory.Received(0).CreateEntry(Arg.Any<object>());
     }
 
     [Fact]
-    public void UpdateHeadersAsync_WithHeaders_ShouldUpdateInMemoryCache()
+    public void UpdateHeadersAsyncWithHeadersShouldUpdateInMemoryCache()
     {
         //Act
         var act = () => _interceptor.UpdateHeadersAsync("test", null, new OAuthHeaders("accesstoken", "tokentype"), CancellationToken.None);
 
         //Assert
-        act.Should().NotThrow();
+        act.Should().NotThrowAsync();
         _memory.Received(1).CreateEntry(Arg.Any<object>());
     }
 
     [Fact]
-    public async Task GetHeadersAsync_WithCacheKeySuffix_ShouldReturnNull()
+    public async Task GetHeadersAsyncWithCacheKeySuffixShouldReturnNull()
     {
         //Act
         var headers = await _interceptor.GetHeadersAsync("test_some-suffix", CancellationToken.None);
@@ -84,7 +84,7 @@ public class MemoryAuthorizationInterceptorTests
     }
 
     [Fact]
-    public async Task GetHeadersAsync_WithCacheKeySuffix_ShouldReturnHeaders()
+    public async Task GetHeadersAsyncWithCacheKeySuffixShouldReturnHeaders()
     {
         //Arrange
         AuthorizationHeaders obj = new OAuthHeaders("accesstoken", "tokentype");
@@ -106,24 +106,24 @@ public class MemoryAuthorizationInterceptorTests
     }
 
     [Fact]
-    public void UpdateHeadersAsync_WithNullHeaders_WithCacheKeySuffix_ShouldNotUpdateInMemoryCache()
+    public void UpdateHeadersAsyncWithNullHeadersWithCacheKeySuffixShouldNotUpdateInMemoryCache()
     {
         //Act
         var act = () => _interceptor.UpdateHeadersAsync("test_some-suffix", null, null, CancellationToken.None);
 
         //Assert
-        act.Should().NotThrow();
+        act.Should().NotThrowAsync();
         _memory.Received(0).CreateEntry(Arg.Any<object>());
     }
 
     [Fact]
-    public void UpdateHeadersAsync_WithHeaders_WithCacheKeySuffix_ShouldUpdateInMemoryCache()
+    public void UpdateHeadersAsyncWithHeadersWithCacheKeySuffixShouldUpdateInMemoryCache()
     {
         //Act
         var act = () => _interceptor.UpdateHeadersAsync("test_some-suffix", null, new OAuthHeaders("accesstoken", "tokentype"), CancellationToken.None);
 
         //Assert
-        act.Should().NotThrow();
+        act.Should().NotThrowAsync();
         _memory.Received(1).CreateEntry(Arg.Any<object>());
     }
 }

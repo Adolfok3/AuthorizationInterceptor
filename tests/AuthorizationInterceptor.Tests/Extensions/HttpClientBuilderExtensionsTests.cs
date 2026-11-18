@@ -12,7 +12,7 @@ public class HttpClientBuilderExtensionsTests
 {
 
     [Fact]
-    public void AddClientCredentialsAuthorizationInterceptorHandler_WithValidOptions_ShouldBuildClient()
+    public void AddClientCredentialsAuthorizationInterceptorHandlerWithValidOptionsShouldBuildClient()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -30,11 +30,11 @@ public class HttpClientBuilderExtensionsTests
         var action = () => provider.GetRequiredService<IHttpClientFactory>().CreateClient("Test");
 
         // Assert
-        Assert.Null(Record.Exception(action));
+        Record.Exception(action).Should().BeNull();
     }
 
     [Fact]
-    public void AddClientCredentialsAuthorizationInterceptorHandler_WithInvalidOptions_ShouldThrow()
+    public void AddClientCredentialsAuthorizationInterceptorHandlerWithInvalidOptionsShouldThrow()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -44,11 +44,11 @@ public class HttpClientBuilderExtensionsTests
             .AddClientCredentialsAuthorizationInterceptorHandler(_ => { });
 
         // Assert
-        Assert.Throws<ArgumentException>(action);
+        action.Should().ThrowExactly<ArgumentException>();
     }
 
     [Fact]
-    public void AddAuthorizationInterceptorHandler_WithoutOptions_ShouldExecuteSuccessfully()
+    public void AddAuthorizationInterceptorHandlerWithoutOptionsShouldExecuteSuccessfully()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -59,11 +59,11 @@ public class HttpClientBuilderExtensionsTests
         var act = () => builder.AddAuthorizationInterceptorHandler<MockAuthorizationInterceptorAuthenticationHandler>();
 
         // Assert
-        Assert.Null(Record.Exception(act));
+        Record.Exception(act).Should().BeNull();
     }
 
     [Fact]
-    public void AddAuthorizationInterceptorHandler_WithOptions_ShouldExecuteSuccessfully()
+    public void AddAuthorizationInterceptorHandlerWithOptionsShouldExecuteSuccessfully()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -78,19 +78,16 @@ public class HttpClientBuilderExtensionsTests
         });
 
         // Assert
-        Assert.Null(Record.Exception(act));
+        Record.Exception(act).Should().BeNull();
     }
 
     [Fact]
-    public void AddAuthorizationInterceptorHandler_WithOptions_ShouldBuildServiceProviderSucessfully()
+    public void AddAuthorizationInterceptorHandlerWithOptionsShouldBuildServiceProviderSucessfully()
     {
         // Arrange
         var services = new ServiceCollection();
         services.AddHttpClient("Test")
-            .AddAuthorizationInterceptorHandler<MockAuthorizationInterceptorAuthenticationHandler>(options =>
-            {
-                options.UseCustomInterceptor<MockAuthorizationInterceptor>(func => func.AddSingleton<MockAuthorizationInterceptor>());
-            });
+            .AddAuthorizationInterceptorHandler<MockAuthorizationInterceptorAuthenticationHandler>(options => options.UseCustomInterceptor<MockAuthorizationInterceptor>(func => func.AddSingleton<MockAuthorizationInterceptor>()));
 
         // Act
         var provider = services.BuildServiceProvider();
@@ -98,32 +95,29 @@ public class HttpClientBuilderExtensionsTests
         var act = () => httpClientFactory.CreateClient("Test");
 
         // Assert
-        Assert.Null(Record.Exception(act));
+        Record.Exception(act).Should().BeNull();
     }
 
     [Fact]
-    public void AddAuthorizationInterceptorHandler_WithNullAuthHandler_ShouldThrowsArgumentNullException()
+    public void AddAuthorizationInterceptorHandlerWithNullAuthHandlerShouldThrowsArgumentNullException()
     {
         // Arrange
         var services = new ServiceCollection();
 
         // Act
-        IHttpClientBuilder act() => services.AddHttpClient("Test").AddAuthorizationInterceptorHandler(authHandlerImpl: null);
+        IHttpClientBuilder act() => services.AddHttpClient("Test").AddAuthorizationInterceptorHandler(authHandlerImpl: default!);
 
         // Assert
-        Assert.Throws<ArgumentNullException>((Func<IHttpClientBuilder>)act);
+        ((Func<IHttpClientBuilder>)act).Should().ThrowExactly<ArgumentNullException>();
     }
 
     [Fact]
-    public void AddAuthorizationInterceptorHandler_WithOptionsAndAuthHandler_ShouldBuildServiceProviderSucessfully()
+    public void AddAuthorizationInterceptorHandlerWithOptionsAndAuthHandlerShouldBuildServiceProviderSucessfully()
     {
         // Arrange
         var services = new ServiceCollection();
         services.AddHttpClient("Test")
-            .AddAuthorizationInterceptorHandler((provider) => ActivatorUtilities.CreateInstance<MockAuthorizationInterceptorAuthenticationHandler>(provider), options =>
-            {
-                options.UseCustomInterceptor<MockAuthorizationInterceptor>(func => func.AddSingleton<MockAuthorizationInterceptor>());
-            });
+            .AddAuthorizationInterceptorHandler((provider) => ActivatorUtilities.CreateInstance<MockAuthorizationInterceptorAuthenticationHandler>(provider), options => options.UseCustomInterceptor<MockAuthorizationInterceptor>(func => func.AddSingleton<MockAuthorizationInterceptor>()));
 
         // Act
         var provider = services.BuildServiceProvider();
@@ -131,53 +125,44 @@ public class HttpClientBuilderExtensionsTests
         var act = () => httpClientFactory.CreateClient("Test");
 
         // Assert
-        Assert.Null(Record.Exception(act));
+        Record.Exception(act).Should().BeNull();
     }
 
     [Fact]
-    public void AddAuthorizationInterceptorHandler_WithAuthHandler_ShouldRegisterHttpContextAccessor()
+    public void AddAuthorizationInterceptorHandlerWithAuthHandlerShouldRegisterHttpContextAccessor()
     {
         // Arrange
         var services = new ServiceCollection();
 
         // Act
         services.AddHttpClient("Test")
-            .AddAuthorizationInterceptorHandler((provider) => ActivatorUtilities.CreateInstance<MockAuthorizationInterceptorAuthenticationHandler>(provider), options =>
-            {
-                options.CacheKeyBuilder = accessor => accessor.HttpContext?.Request.Headers["x-mycustom-header"].ToString();
-            });
+            .AddAuthorizationInterceptorHandler((provider) => ActivatorUtilities.CreateInstance<MockAuthorizationInterceptorAuthenticationHandler>(provider), options => options.CacheKeyBuilder = accessor => accessor.HttpContext?.Request.Headers["x-mycustom-header"].ToString());
 
         // Assert
-        Assert.Contains(services, descriptor => descriptor.ServiceType == typeof(IHttpContextAccessor));
+        services.Should().Contain(descriptor => descriptor.ServiceType == typeof(IHttpContextAccessor));
     }
 
     [Fact]
-    public void AddAuthorizationInterceptorHandler_WithInterceptorDependencies_ShouldRegisterThemAtRegistrationTime()
+    public void AddAuthorizationInterceptorHandlerWithInterceptorDependenciesShouldRegisterThemAtRegistrationTime()
     {
         // Arrange
         var services = new ServiceCollection();
 
         // Act
         services.AddHttpClient("Test")
-            .AddAuthorizationInterceptorHandler<MockAuthorizationInterceptorAuthenticationHandler>(options =>
-            {
-                options.UseCustomInterceptor<MockDependentAuthorizationInterceptor>(func => func.AddSingleton<MockInterceptorDependency>());
-            });
+            .AddAuthorizationInterceptorHandler<MockAuthorizationInterceptorAuthenticationHandler>(options => options.UseCustomInterceptor<MockDependentAuthorizationInterceptor>(func => func.AddSingleton<MockInterceptorDependency>()));
 
         // Assert
-        Assert.Contains(services, descriptor => descriptor.ServiceType == typeof(MockInterceptorDependency));
+        services.Should().Contain(descriptor => descriptor.ServiceType == typeof(MockInterceptorDependency));
     }
 
     [Fact]
-    public void AddAuthorizationInterceptorHandler_WithDistributedLockMode_AndNoProvider_ShouldThrowWhenCreatingClient()
+    public void AddAuthorizationInterceptorHandlerWithDistributedLockModeAndNoProviderShouldThrowWhenCreatingClient()
     {
         // Arrange
         var services = new ServiceCollection();
         services.AddHttpClient("Test")
-            .AddAuthorizationInterceptorHandler<MockAuthorizationInterceptorAuthenticationHandler>(options =>
-            {
-                options.LockMode = AuthenticationLockMode.Distributed;
-            });
+            .AddAuthorizationInterceptorHandler<MockAuthorizationInterceptorAuthenticationHandler>(options => options.LockMode = AuthenticationLockMode.Distributed);
 
         var provider = services.BuildServiceProvider();
         var httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
@@ -186,12 +171,11 @@ public class HttpClientBuilderExtensionsTests
         var act = () => httpClientFactory.CreateClient("Test");
 
         // Assert
-        var exception = Assert.Throws<InvalidOperationException>(act);
-        Assert.Contains("IDistributedLockProvider", exception.Message);
+        var exception = act.Should().ThrowExactly<InvalidOperationException>().WithMessage("*IDistributedLockProvider*");
     }
 
     [Fact]
-    public void AddAuthorizationInterceptorHandler_WithDistributedLockMode_AndProviderRegistered_ShouldBuildServiceProviderSuccessfully()
+    public void AddAuthorizationInterceptorHandlerWithDistributedLockModeAndProviderRegisteredShouldBuildServiceProviderSuccessfully()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -209,19 +193,16 @@ public class HttpClientBuilderExtensionsTests
         var act = () => httpClientFactory.CreateClient("Test");
 
         // Assert
-        Assert.Null(Record.Exception(act));
+        Record.Exception(act).Should().BeNull();
     }
 
     [Fact]
-    public void AddAuthorizationInterceptorHandler_WithInterceptorDependencies_ShouldCreateClientAfterServiceCollectionIsReadOnly()
+    public void AddAuthorizationInterceptorHandlerWithInterceptorDependenciesShouldCreateClientAfterServiceCollectionIsReadOnly()
     {
         // Arrange
         var services = new ServiceCollection();
         services.AddHttpClient("Test")
-            .AddAuthorizationInterceptorHandler<MockAuthorizationInterceptorAuthenticationHandler>(options =>
-            {
-                options.UseCustomInterceptor<MockDependentAuthorizationInterceptor>(func => func.AddSingleton<MockInterceptorDependency>());
-            });
+            .AddAuthorizationInterceptorHandler<MockAuthorizationInterceptorAuthenticationHandler>(options => options.UseCustomInterceptor<MockDependentAuthorizationInterceptor>(func => func.AddSingleton<MockInterceptorDependency>()));
 
         var provider = services.BuildServiceProvider();
 
@@ -233,6 +214,6 @@ public class HttpClientBuilderExtensionsTests
         var act = () => provider.GetRequiredService<IHttpClientFactory>().CreateClient("Test");
 
         // Assert
-        Assert.Null(Record.Exception(act));
+        Record.Exception(act).Should().BeNull();
     }
 }

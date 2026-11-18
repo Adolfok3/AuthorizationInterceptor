@@ -1,5 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Logging;
 
 namespace AuthorizationInterceptor.Utils;
 
@@ -57,4 +57,3 @@ public static partial class AuthorizationInterceptorLogDefinitions
     [LoggerMessage(EventId = 17, Level = LogLevel.Debug, Message = "Headers were refreshed by a concurrent instance with integration `{IntegrationKey}`. Skipping authentication.")]
     public static partial void LogHeadersRefreshedByConcurrentInstance(this ILogger logger, string integrationKey);
 }
-
